@@ -9,21 +9,21 @@ class TestPythonGenomics(TestCase):
 
     def test_orfs_1(self):
         # Test 1
-        orfs = ORFs.get_orfs(SeqRecord('ATGAAATAG'))
+        orfs = ORFs.get_orf_ranges(SeqRecord('ATGAAATAG'))
         self.assertEqual(len(orfs), 1)
         self.assertEqual(len(orfs[1]), 1)
         self.assertEqual(orfs[1][0]['orf_length'], 9)
 
     def test_orfs_2(self):
         # Test 1
-        orfs = ORFs.get_orfs(SeqRecord('ATGAACATCATGAAATAG'))
+        orfs = ORFs.get_orf_ranges(SeqRecord('ATGAACATCATGAAATAG'))
         self.assertEqual(len(orfs), 1)
         self.assertEqual(len(orfs[1]), 1)
         self.assertEqual(orfs[1][0]['orf_length'], 18)
 
     def test_orfs_3(self):
         # Test 1
-        orfs = ORFs.get_orfs(SeqRecord('ATGAACTAGATCATGAAATAG'))
+        orfs = ORFs.get_orf_ranges(SeqRecord('ATGAACTAGATCATGAAATAG'))
         self.assertEqual(len(orfs), 1)
         self.assertEqual(len(orfs[1]), 2)
         self.assertEqual(orfs[1][0]['orf_length'], 9)
@@ -31,14 +31,14 @@ class TestPythonGenomics(TestCase):
 
     def test_orfs_4(self):
         # Test 1
-        orfs = ORFs.get_orfs(SeqRecord('ATGAACTAGATCATGAAATAG'))
+        orfs = ORFs.get_orf_ranges(SeqRecord('ATGAACTAGATCATGAAATAG'))
         self.assertEqual(len(orfs), 1)
         self.assertEqual(len(orfs[1]), 2)
         self.assertEqual(orfs[1][0]['orf_length'], 9)
         self.assertEqual(orfs[1][1]['orf_length'], 9)
 
     def test_orfs_5(self):
-        orfs = ORFs.get_orfs(SeqRecord('ATGAACTAGATGATCATGAAATAGCATGAAATAG'))
+        orfs = ORFs.get_orf_ranges(SeqRecord('ATGAACTAGATGATCATGAAATAGCATGAAATAG'))
         assert len(orfs) == 2
         assert len(orfs[1]) == 2
         assert len(orfs[2]) == 1

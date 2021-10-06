@@ -1,19 +1,18 @@
-import sys
+import os
+from pathlib import Path
 from typing import Optional
+from collections import OrderedDict, defaultdict, Counter, deque
 
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
-from collections import OrderedDict, defaultdict, Counter, deque
-
-DATA_PATH = '/Users/jonathan/PycharmProjects/genomics_data_science/data/dna2.fasta'
+DATA_PATH = os.path.join(Path(os.path.dirname(__file__)).parents[2], 'data', 'dna2.fasta')
 
 
 class FastaMetadata:
     @staticmethod
     def get_fasta_info(data_path: str = DATA_PATH) -> dict:
         metadata = {}
-
         with open(data_path, 'r') as handle:
             for i, record in enumerate(SeqIO.parse(handle, "fasta")):
                 metadata[record.id] = {
@@ -27,7 +26,8 @@ class ORFs:
     STOP_CODONS = {'TAA', 'TAG', 'TGA'}
 
     @staticmethod
-    def get_orfs(sequence_record: SeqRecord) -> dict:
+    def get_orf_ranges(sequence_record: SeqRecord) -> dict:
+        """ Returns ORF ranges in the input sequence record """
         map_orf_to_ranges = defaultdict(list)
 
         for reading_frame in (1, 2, 3):
@@ -59,6 +59,7 @@ class ORFs:
                     stop_codon_idx = stop_codon_indices.popleft()
                     if stop_codon_idx > start_codon_idx:
                         break
+
                 if start_codon_idx < stop_codon_idx:
                     orf_start_idx = start_codon_idx * 3
                     orf_end_idx = stop_codon_idx * 3 + 3
@@ -74,12 +75,13 @@ class ORFs:
 
     @staticmethod
     def get_all_orfs_from_fasta(data_path: str = DATA_PATH, sequence_id: Optional[str] = None) -> dict:
+        """ Get all the ORF ranges frmo a FASTA file """
         orfs_metadata = {}
         with open(data_path, 'r') as handle:
             for i, record in enumerate(SeqIO.parse(handle, "fasta")):
                 if sequence_id and record.id != sequence_id:
                     continue
-                orfs = ORFs.get_orfs(record)
+                orfs = ORFs.get_orf_ranges(record)
                 orfs_metadata[record.id] = orfs
         return orfs_metadata
 
@@ -93,7 +95,6 @@ class ORFs:
 
 
 class RepeatCounter:
-
     @staticmethod
     def count_repeats(sequence_record: SeqRecord, n: int) -> tuple:
         pointer = 0
