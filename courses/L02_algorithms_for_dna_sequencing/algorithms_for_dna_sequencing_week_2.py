@@ -34,8 +34,8 @@ class BoyerMoore:
                     continue
                 else:
                     match = False
-                    bad_char_shift = self.p_bm.bad_character_rule(j, t[k]) if self.p_bm else self.bad_character_rule(t[k], j)
-                    good_suffix_shift = self.p_bm.good_suffix_rule(j) if self.p_bm else self.good_suffix_rule(''.join(matching_suffix), j)
+                    bad_char_shift = self.p_bm.bad_character_rule(j, t[k])
+                    good_suffix_shift = self.p_bm.good_suffix_rule(j)
                     shift = max(bad_char_shift, good_suffix_shift, 1)
                     if shift > 1:
                         skipped_alignments.append(
