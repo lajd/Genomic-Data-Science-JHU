@@ -89,7 +89,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         self.assertEqual(occurrences, [18])
         self.assertEqual(
             alignment_tried,
-            26
+            4
         )
 
     def test_boyer_moore2(self):
@@ -98,7 +98,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
         self.assertEqual(
             alignment_tried,
-            12
+            2
         )
 
     def test_boyer_moore3(self):
@@ -114,7 +114,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
 
         self.assertEqual(
             alignment_tried,
-            44
+            12
         )
 
         self.assertEqual(num_char_comparisons, 15)
@@ -133,7 +133,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
 
         self.assertEqual(
             alignment_tried,
-            25
+            5
         )
 
         self.assertEqual(num_character_comparisons, 18)

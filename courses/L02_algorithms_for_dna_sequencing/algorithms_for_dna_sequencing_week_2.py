@@ -12,7 +12,9 @@ from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import 
 
 ### Boyer-Moore basics
 class BoyerMoore:
-    def __init__(self, p: str, p_bm: BoyerMoorePreprocessing):
+    def __init__(self, p: str, p_bm: Optional[BoyerMoorePreprocessing] = None, alphabet: str = 'ACGT'):
+        if not p_bm:
+            p_bm = BoyerMoorePreprocessing(p, alphabet=alphabet)
         self.p = p
         self.p_bm = p_bm
 
@@ -21,8 +23,10 @@ class BoyerMoore:
         skipped_alignments = []
         num_char_comparisons = 0
         alignment_start_idx = 0
+        num_alignments_tried = 0
 
         while alignment_start_idx <= (len(t) - len(self.p)):
+            num_alignments_tried += 1
             shift = 1
             match = True
             # Check from right to left
@@ -49,6 +53,4 @@ class BoyerMoore:
                 skip_gs = self.p_bm.match_skip()
                 shift = max(shift, skip_gs)
             alignment_start_idx += shift
-        num_alignments_tried = alignment_start_idx
         return occurrences, num_alignments_tried, num_char_comparisons
-
