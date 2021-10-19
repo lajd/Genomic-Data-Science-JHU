@@ -1,5 +1,11 @@
+import os
 import random
-from collections import defaultdict
+from typing import Optional
+from collections import defaultdict, deque
+from matplotlib import pyplot as plt
+
+from data import DATA_DIR
+
 
 class BaseQualities:
     @staticmethod
@@ -22,7 +28,7 @@ def random_embedded_genome(p: str, l: int = 100):
     return seq, rand_pos
 
 
-class StringMatching:
+class NaiveAlignment:
     @staticmethod
     def _naive_alignment(p: str, t: str):
         occurences = []
@@ -74,11 +80,11 @@ class StringMatching:
         if allow_mismatches is False:
             all_occurrences = []
             reverse_p = reverseComplement(p)
-            occurrences = StringMatching._naive_alignment(p, t)
+            occurrences = NaiveAlignment._naive_alignment(p, t)
             all_occurrences.extend(occurrences)
 
             if include_reverse_compliment and reverse_p != p:
-                all_occurrences.extend(StringMatching._naive_alignment(reverse_p, t))
+                all_occurrences.extend(NaiveAlignment._naive_alignment(reverse_p, t))
 
             return all_occurrences
 
@@ -86,7 +92,7 @@ class StringMatching:
             all_occurrences = []
             all_alignments = defaultdict(set)
             reverse_p = reverseComplement(p)
-            occurrences, alignments = StringMatching._naive_alignment_with_mismatches(p, t, ignore_alignments=all_alignments, n=num_mismatches)
+            occurrences, alignments = NaiveAlignment._naive_alignment_with_mismatches(p, t, ignore_alignments=all_alignments, n=num_mismatches)
             all_occurrences.extend(occurrences)
 
             for k, v in alignments.items():
@@ -96,7 +102,7 @@ class StringMatching:
                     all_alignments.setdefault(k, v)
 
             if include_reverse_compliment and reverse_p != p:
-                occurrences, alignments = StringMatching._naive_alignment_with_mismatches(reverse_p, t, ignore_alignments=all_alignments, n=num_mismatches)
+                occurrences, alignments = NaiveAlignment._naive_alignment_with_mismatches(reverse_p, t, ignore_alignments=all_alignments, n=num_mismatches)
                 all_occurrences.extend(occurrences)
                 for k, v in alignments.items():
                     if k in all_alignments:
@@ -140,72 +146,7 @@ def readFastq(filename: str):
     return sequences, qualities
 
 
-genome = readGenome('/Users/jonathan/PycharmProjects/genomics_data_science/data/lambda_virus.fa')
-
-# test basic
-s = 'ATCGCGCGATGCGCAT'
-test_reads = [random_embedded_genome(s, 100)[0] for _ in range(100)]
-counts = 0
-for read in test_reads:
-    occurrences = StringMatching.naive_alignments(s, read)
-    counts += len(occurrences)
-
-assert counts == 100
-
-# test same reverse compliment
-single_stranded_counts = 0
-reverse_compliment_counts = 0
-s = 'TTAA'
-test_reads = [random_embedded_genome(s, 100)[0] for _ in range(100)]
-for read in test_reads:
-    single_stranded_counts += len(StringMatching.naive_alignments(s, read, include_reverse_compliment=False))
-    reverse_compliment_counts += len(StringMatching.naive_alignments(s, read, include_reverse_compliment=True))
-
-assert reverse_compliment_counts == single_stranded_counts
-
-
-# Problem 1
-counts = 0
-occurrences = StringMatching.naive_alignments('AGGT', genome)
-counts += len(occurrences)
-
-# Problem 2
-counts = 0
-occurrences = StringMatching.naive_alignments('TTAA', genome)
-counts += len(occurrences)
-
-# Problem 3
-occurrences = StringMatching.naive_alignments('ACTAAGT', genome)
-
-# Problem 4
-occurrences = StringMatching.naive_alignments('AGTCGA', genome)
-
-# Problem 5
-## Test 1
-occurrences, alignments = StringMatching.naive_alignments('ACTTTA', 'ACTTACTTGATAAAGT', allow_mismatches=True, num_mismatches=2, include_reverse_compliment=False)
-assert occurrences == [0, 4]
-
-# Test 2
-p = 'CTGT'
-ten_as = 'AAAAAAAAAA'
-t = ten_as + 'CTGT' + ten_as + 'CTTT' + ten_as + 'CGGG' + ten_as
-occurrences, alignments = StringMatching.naive_alignments(p, t, allow_mismatches=True, num_mismatches=2, include_reverse_compliment=False)
-assert occurrences == [10, 24, 38]
-# Test 3
-occurrences, alignments = StringMatching.naive_alignments('GATTACA', readGenome('/Users/jonathan/PycharmProjects/genomics_data_science/data/phix.fa'), allow_mismatches=True, num_mismatches=2, include_reverse_compliment=False)
-assert len(occurrences) == 79
-assert min(occurrences) == 10
-
-## Real
-occurrences, alignments = StringMatching.naive_alignments('TTCAAGCC', genome, allow_mismatches=True, num_mismatches=2, include_reverse_compliment=False)
-print(len(occurrences))
-
-
-# Problem 6
-sequence_reads, qualities = readFastq('/Users/jonathan/PycharmProjects/genomics_data_science/data/ERR037900_1.first1000.fastq')
-
 def gcContentByPosition(reads: list, n: int):
-
     gc_content = [0] * n
     total_content = [0] * n
     for read in reads:
@@ -222,40 +163,35 @@ def gcContentByPosition(reads: list, n: int):
             gc_ratio.append(0)
     return gc_ratio
 
-gc_ratio = gcContentByPosition(sequence_reads, 100)
 
-from matplotlib import pyplot as plt
-plt.plot(range(len(gc_ratio)), gc_ratio)
-plt.show()
+if __name__ == '__main__':
 
+    genome = readGenome(os.path.join(DATA_DIR, 'lambda_virus.fa'))
 
-# Offset 66
+    # Problem 1
+    occurrences = NaiveAlignment.naive_alignments('AGGT', genome)
+    print("Problem 1 occurrence counts: %s", len(occurrences))
 
+    # Problem 2
+    occurrences = NaiveAlignment.naive_alignments('TTAA', genome)
+    print("Problem 2 occurrence counts: %s", len(occurrences))
 
-### Boyer-Moore basics
+    # Problem 3
+    occurrences = NaiveAlignment.naive_alignments('ACTAAGT', genome)
+    print("Problem 3 occurrence counts: %s", len(occurrences))
 
+    # Problem 4
+    occurrences = NaiveAlignment.naive_alignments('AGTCGA', genome)
+    print("Problem 4 occurrence counts: %s", len(occurrences))
 
-class BoyerMoore:
+    # Problem 5
+    occurrences, alignments = NaiveAlignment.naive_alignments('TTCAAGCC', genome, allow_mismatches=True, num_mismatches=2, include_reverse_compliment=False)
+    print("Problem 5 num occurrence counts: %s", len(occurrences))
 
-    @staticmethod
-    def boyer_moore_alignment(p: str, t: str):
-        rev_p = p[::-1]
-        alignment_start_idx = 0
+    # Problem 6
+    sequence_reads, qualities = readFastq(os.path.join(DATA_DIR, 'ERR037900_1.first1000.fastq'))
+    gc_ratio = gcContentByPosition(sequence_reads, 100)
+    plt.plot(range(len(gc_ratio)), gc_ratio)
+    plt.show()
 
-        while alignment_start_idx < (len(t) - len(p) + 1):
-            # Check from right to left
-            for j in range(alignment_start_idx + len(p))
-                j = alignment_start_idx
-                if alignment_start_idx +
-
-
-
-            for i in range(len(p)):
-                if p[i] == t[i]:
-                    continue
-
-            for i, base in enumerate(rev_p):
-
-
-
-
+    print("Problem 6 offset: %s", 66)  # Identified from graph
