@@ -32,9 +32,11 @@ class NaiveAlignment:
     @staticmethod
     def _naive_alignment(p: str, t: str):
         occurences = []
+        comparisons = 0
         for i in range(len(t) - len(p) + 1):
             match = True
             for j in range(len(p)):
+                comparisons += 1
                 if t[i + j] == p[j]:
                     # Same char
                     continue
@@ -43,10 +45,11 @@ class NaiveAlignment:
                     break
             if match:
                 occurences.append(i)
-        return occurences
+        return occurences, comparisons
 
     @staticmethod
     def _naive_alignment_with_mismatches(p: str, t: str, n: int, ignore_alignments: dict=None):
+        comparisons = 0
         occurences = []
         matched_alignments = defaultdict(set)
         for i in range(len(t) - len(p) + 1):
@@ -54,6 +57,7 @@ class NaiveAlignment:
             num_mismatches = 0
             alignment = ''
             for j in range(len(p)):
+                comparisons += 1
                 if t[i + j] == p[j]:
                     alignment += p[j]
                     # Same char
@@ -71,45 +75,52 @@ class NaiveAlignment:
                 else:
                     occurences.append(i)
                     matched_alignments[alignment].add(i)
-        return occurences, matched_alignments
+        return occurences, matched_alignments, comparisons
 
     @staticmethod
     def naive_alignments(p: str, t: str, include_reverse_compliment: bool = True,
                          allow_mismatches: bool = False, num_mismatches: int = None):
 
+        all_occurrences = []
+        num_comparisons = 0
         if allow_mismatches is False:
-            all_occurrences = []
-            reverse_p = reverseComplement(p)
-            occurrences = NaiveAlignment._naive_alignment(p, t)
-            all_occurrences.extend(occurrences)
+            occurrences_, num_comparisons_ = NaiveAlignment._naive_alignment(p, t)
+            num_comparisons += num_comparisons_
+            all_occurrences.extend(occurrences_)
 
-            if include_reverse_compliment and reverse_p != p:
-                all_occurrences.extend(NaiveAlignment._naive_alignment(reverse_p, t))
+            if include_reverse_compliment:
+                reverse_p = reverseComplement(p)
+                if reverse_p != p:
+                    occurrences_, num_comparisons_ = NaiveAlignment._naive_alignment(reverse_p, t)
+                    num_comparisons += num_comparisons_
+                    all_occurrences.extend(occurrences_)
 
-            return all_occurrences
+            return all_occurrences, num_comparisons
 
         else:
-            all_occurrences = []
             all_alignments = defaultdict(set)
-            reverse_p = reverseComplement(p)
-            occurrences, alignments = NaiveAlignment._naive_alignment_with_mismatches(p, t, ignore_alignments=all_alignments, n=num_mismatches)
-            all_occurrences.extend(occurrences)
+            occurrences_, alignments_, num_comparisons_ = NaiveAlignment._naive_alignment_with_mismatches(p, t, ignore_alignments=all_alignments, n=num_mismatches)
+            num_comparisons += num_comparisons_
+            all_occurrences.extend(occurrences_)
 
-            for k, v in alignments.items():
+            for k, v in alignments_.items():
                 if k in all_alignments:
                     all_alignments[k].union(v)
                 else:
                     all_alignments.setdefault(k, v)
 
-            if include_reverse_compliment and reverse_p != p:
-                occurrences, alignments = NaiveAlignment._naive_alignment_with_mismatches(reverse_p, t, ignore_alignments=all_alignments, n=num_mismatches)
-                all_occurrences.extend(occurrences)
-                for k, v in alignments.items():
-                    if k in all_alignments:
-                        all_alignments[k].union(v)
-                    else:
-                        all_alignments.setdefault(k, v)
-            return all_occurrences, all_alignments
+            if include_reverse_compliment:
+                reverse_p = reverseComplement(p)
+                if reverse_p != p:
+                    occurrences_, alignments_, num_comparisons_ = NaiveAlignment._naive_alignment_with_mismatches(reverse_p, t, ignore_alignments=all_alignments, n=num_mismatches)
+                    num_comparisons += num_comparisons_
+                    all_occurrences.extend(occurrences_)
+                    for k, v in alignments_.items():
+                        if k in all_alignments:
+                            all_alignments[k].union(v)
+                        else:
+                            all_alignments.setdefault(k, v)
+            return all_occurrences, num_comparisons
 
 
 def reverseComplement(s: str):

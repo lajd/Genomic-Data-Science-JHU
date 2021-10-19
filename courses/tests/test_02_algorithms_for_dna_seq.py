@@ -20,7 +20,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         test_reads = [random_embedded_genome(s, 100)[0] for _ in range(100)]
         counts = 0
         for read in test_reads:
-            occurrences = NaiveAlignment.naive_alignments(s, read)
+            occurrences, naive_alignments = NaiveAlignment.naive_alignments(s, read)
             counts += len(occurrences)
 
         self.assertEqual(counts, 100)
@@ -31,61 +31,74 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         s = 'TTAA'
         test_reads = [random_embedded_genome(s, 100)[0] for _ in range(100)]
         for read in test_reads:
-            single_stranded_counts += len(NaiveAlignment.naive_alignments(s, read, include_reverse_compliment=False))
-            reverse_compliment_counts += len(NaiveAlignment.naive_alignments(s, read, include_reverse_compliment=True))
+            single_stranded_counts += len(NaiveAlignment.naive_alignments(s, read, include_reverse_compliment=False)[0])
+            reverse_compliment_counts += len(NaiveAlignment.naive_alignments(s, read, include_reverse_compliment=True)[0])
 
         self.assertEqual(reverse_compliment_counts, single_stranded_counts)
 
     def test_naive_alignment_with_mismatches(self):
-        occurrences, alignments = NaiveAlignment.naive_alignments('ACTTTA', 'ACTTACTTGATAAAGT', allow_mismatches=True,
+        occurrences, naive_alignments = NaiveAlignment.naive_alignments('ACTTTA', 'ACTTACTTGATAAAGT', allow_mismatches=True,
                                                                   num_mismatches=2, include_reverse_compliment=False)
         self.assertEqual(occurrences, [0, 4])
-
 
     def test_naive_alignment_with_mismatches_2(self):
         p = 'CTGT'
         ten_as = 'AAAAAAAAAA'
         t = ten_as + 'CTGT' + ten_as + 'CTTT' + ten_as + 'CGGG' + ten_as
-        occurrences, alignments = NaiveAlignment.naive_alignments(p, t, allow_mismatches=True, num_mismatches=2,
+        occurrences, naive_alignments = NaiveAlignment.naive_alignments(p, t, allow_mismatches=True, num_mismatches=2,
                                                                   include_reverse_compliment=False)
         self.assertEqual(occurrences, [10, 24, 38])
 
     def test_naive_alignment_with_mismatches_3(self):
-        occurrences, alignments = NaiveAlignment.naive_alignments('GATTACA', readGenome(os.path.join(DATA_DIR, 'phix.fa')),
+        occurrences, naive_alignments = NaiveAlignment.naive_alignments('GATTACA', readGenome(os.path.join(DATA_DIR, 'phix.fa')),
                                                                   allow_mismatches=True, num_mismatches=2,
                                                                   include_reverse_compliment=False)
         self.assertEqual(len(occurrences), 79)
         self.assertEqual(min(occurrences), 10)
 
+    def test_naive_alignments_exact_1(self):
 
-class TestAlgorithmsForDNASequencingWeek2(TestCase):
+        p = 'word'
+        t = 'there would have been a time for such a word'
+        occurrences, num_comparisons = NaiveAlignment.naive_alignments(p, t, include_reverse_compliment=False)
+        self.assertEqual(occurrences, [40])
+        self.assertEqual(num_comparisons, 46)
+        num_alignments = len(t) - len(p) + 1
+        self.assertEqual(num_alignments, 41)
+
+    def test_naive_alignments_exact_2(self):
+
+        p = 'needle'
+        t = 'needle need noodle needle'
+        occurrences, num_comparisons = NaiveAlignment.naive_alignments(p, t, include_reverse_compliment=False)
+        self.assertEqual(occurrences, [0, 19])
+        self.assertEqual(num_comparisons, 35)
+        num_alignments = len(t) - len(p) + 1
+        self.assertEqual(num_alignments, 20)
 
     @staticmethod
     def get_boyer_moore(p: str, alphabet: str = 'ACGT'):
         p_bm = BoyerMoorePreprocessing(p, alphabet=alphabet)
         bm = BoyerMoore(p, p_bm=p_bm)
-
         return bm
 
     def test_boyer_moore(self):
         t = 'GTTATAGCTGATCGCGGCGTAGCGGCGAA'
         bm = self.get_boyer_moore('GTAGCGGCG')
-        occurrences, skipped_alignments, num_char_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
         self.assertEqual(occurrences, [18])
-        self.assertListEqual(
-            skipped_alignments,
-            [{'shift': 6, 'bad_char_shift': 6, 'good_suffix_shift': 0},
-             {'shift': 2, 'bad_char_shift': 0, 'good_suffix_shift': 2},
-             {'shift': 7, 'bad_char_shift': 2, 'good_suffix_shift': 7}]
+        self.assertEqual(
+            alignment_tried,
+            26
         )
 
     def test_boyer_moore2(self):
         t = 'CCGGTGTTTGAC'
         bm = self.get_boyer_moore('GATTATT')
-        occurrences, skipped_alignments, num_char_comparisons = bm.boyer_moore_alignment(t)
-        self.assertListEqual(
-            skipped_alignments,
-            [{'shift': 4, 'bad_char_shift': 4, 'good_suffix_shift': 0}, {'shift': 6, 'bad_char_shift': 6, 'good_suffix_shift': 0}]
+        occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
+        self.assertEqual(
+            alignment_tried,
+            12
         )
 
     def test_boyer_moore3(self):
@@ -93,24 +106,15 @@ class TestAlgorithmsForDNASequencingWeek2(TestCase):
         t = 'there would have been a time for such a word'
         lowercase_alphabet = 'abcdefghijklmnopqrstuvwxyz '
         bm = self.get_boyer_moore(p, alphabet=lowercase_alphabet)
-        occurrences, skipped_alignments, num_char_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
         self.assertListEqual(
             occurrences,
             [40]
         )
 
-        self.assertListEqual(
-            skipped_alignments,
-            [{'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 3, 'bad_char_shift': 3, 'good_suffix_shift': 0},
-             {'shift': 2, 'bad_char_shift': 2, 'good_suffix_shift': 0}]
+        self.assertEqual(
+            alignment_tried,
+            44
         )
 
         self.assertEqual(num_char_comparisons, 15)
@@ -120,17 +124,16 @@ class TestAlgorithmsForDNASequencingWeek2(TestCase):
         p = 'needle'
         t = 'needle need noodle needle'
         bm = self.get_boyer_moore(p, alphabet=lowercase_alphabet)
-        occurrences, skipped_alignments, num_character_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_character_comparisons = bm.boyer_moore_alignment(t)
 
         self.assertListEqual(
             occurrences,
             [0, 19]
         )
 
-        self.assertListEqual(
-            skipped_alignments,
-            [{'shift': 5, 'bad_char_shift': 5, 'good_suffix_shift': 0},
-             {'shift': 5, 'bad_char_shift': 2, 'good_suffix_shift': 5}]
+        self.assertEqual(
+            alignment_tried,
+            25
         )
 
         self.assertEqual(num_character_comparisons, 18)

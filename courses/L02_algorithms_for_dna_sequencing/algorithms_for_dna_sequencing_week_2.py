@@ -23,20 +23,17 @@ class BoyerMoore:
         alignment_start_idx = 0
 
         while alignment_start_idx <= (len(t) - len(self.p)):
+            shift = 1
             match = True
             # Check from right to left
-            matching_suffix = deque()
             for j in range(len(self.p) - 1, -1, -1):
                 num_char_comparisons += 1
                 k = alignment_start_idx + j
-                if self.p[j] == t[k]:
-                    matching_suffix.appendleft(self.p[j])
-                    continue
-                else:
+                if self.p[j] != t[k]:
                     match = False
                     bad_char_shift = self.p_bm.bad_character_rule(j, t[k])
                     good_suffix_shift = self.p_bm.good_suffix_rule(j)
-                    shift = max(bad_char_shift, good_suffix_shift, 1)
+                    shift = max(bad_char_shift, good_suffix_shift, shift)
                     if shift > 1:
                         skipped_alignments.append(
                             {
@@ -45,10 +42,13 @@ class BoyerMoore:
                                 'good_suffix_shift': good_suffix_shift - 1 if good_suffix_shift > 0 else 0
                             }
                         )
-                    alignment_start_idx += shift
                     break
+
             if match:
                 occurrences.append(alignment_start_idx)
-                alignment_start_idx += len(self.p)
-        return occurrences, skipped_alignments, num_char_comparisons
+                skip_gs = self.p_bm.match_skip()
+                shift = max(shift, skip_gs)
+            alignment_start_idx += shift
+        num_alignments_tried = alignment_start_idx
+        return occurrences, num_alignments_tried, num_char_comparisons
 
