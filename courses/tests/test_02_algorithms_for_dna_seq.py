@@ -150,8 +150,14 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         matches = PigeonHoleApproximateMatching().query(t=t, m=2, p=p, method='kmer_index', k=2)
         self.assertEqual(matches, [0, 5])
 
-    def test_approximate_kmer_index2(self):
+    def test_exact_kmer_index2(self):
         p = 'TCTA'
         t = 'GCTACGATCTAGAATCTA'
         matches = PigeonHoleApproximateMatching().query(t=t, m=0, p=p, method='kmer_index', k=2)
         self.assertEqual(matches, [7, 14])
+
+    def test_approximate_kmer_index3(self):
+        p = 'AACTTG'
+        t = 'CACTTAATTTG'
+        matches = PigeonHoleApproximateMatching().query(t=t, m=2, p=p, method='kmer_index', k=2)
+        self.assertEqual(matches, [0, 5])
