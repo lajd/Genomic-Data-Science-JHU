@@ -136,7 +136,7 @@ def dense_bad_char_tab(p, amap):
     return tab
 
 
-class BoyerMoore(object):
+class BoyerMoorePreprocessing(object):
     """ Encapsulates pattern and associated Boyer-Moore preprocessing. """
 
     def __init__(self, p, alphabet='ACGT'):

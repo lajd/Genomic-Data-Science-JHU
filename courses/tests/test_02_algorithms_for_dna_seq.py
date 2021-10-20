@@ -6,8 +6,8 @@ from Bio.SeqRecord import SeqRecord
 from parameterized import parameterized
 
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import NaiveAlignment, random_embedded_genome, readGenome
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import BoyerMoore
-from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoore as BoyerMoorePreprocessing
+from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import PigeonHoleApproximateMatching, BoyerMooreExact, KMERIndex
+from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoorePreprocessing
 
 from data import DATA_DIR
 
@@ -79,13 +79,13 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
     @staticmethod
     def get_boyer_moore(p: str, alphabet: str = 'ACGT'):
         p_bm = BoyerMoorePreprocessing(p, alphabet=alphabet)
-        bm = BoyerMoore(p, p_bm=p_bm)
+        bm = BoyerMooreExact(p, p_bm=p_bm)
         return bm
 
     def test_boyer_moore(self):
         t = 'GTTATAGCTGATCGCGGCGTAGCGGCGAA'
         bm = self.get_boyer_moore('GTAGCGGCG')
-        occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_char_comparisons = bm.query(t)
         self.assertEqual(occurrences, [18])
         self.assertEqual(
             alignment_tried,
@@ -95,7 +95,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
     def test_boyer_moore2(self):
         t = 'CCGGTGTTTGAC'
         bm = self.get_boyer_moore('GATTATT')
-        occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_char_comparisons = bm.query(t)
         self.assertEqual(
             alignment_tried,
             2
@@ -106,7 +106,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         t = 'there would have been a time for such a word'
         lowercase_alphabet = 'abcdefghijklmnopqrstuvwxyz '
         bm = self.get_boyer_moore(p, alphabet=lowercase_alphabet)
-        occurrences, alignment_tried, num_char_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_char_comparisons = bm.query(t)
         self.assertListEqual(
             occurrences,
             [40]
@@ -124,7 +124,7 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         p = 'needle'
         t = 'needle need noodle needle'
         bm = self.get_boyer_moore(p, alphabet=lowercase_alphabet)
-        occurrences, alignment_tried, num_character_comparisons = bm.boyer_moore_alignment(t)
+        occurrences, alignment_tried, num_character_comparisons = bm.query(t)
 
         self.assertListEqual(
             occurrences,
@@ -137,3 +137,21 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         )
 
         self.assertEqual(num_character_comparisons, 18)
+
+    def test_approximate_boyer_moore1(self):
+        p = 'AACTTG'
+        t = 'CACTTAATTTG'
+        matches = PigeonHoleApproximateMatching().query(p=p, t=t, m=2)
+        self.assertEqual(matches, [0, 5])
+
+    def test_approximate_kmer_index1(self):
+        p = 'AACTTG'
+        t = 'CACTTAATTTG'
+        matches = PigeonHoleApproximateMatching().query(t=t, m=2, p=p, method='kmer_index', k=2)
+        self.assertEqual(matches, [0, 5])
+
+    def test_approximate_kmer_index2(self):
+        p = 'TCTA'
+        t = 'GCTACGATCTAGAATCTA'
+        matches = PigeonHoleApproximateMatching().query(t=t, m=0, p=p, method='kmer_index', k=2)
+        self.assertEqual(matches, [7, 14])

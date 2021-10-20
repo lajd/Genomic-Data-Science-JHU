@@ -1,6 +1,6 @@
 import os
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import readGenome, DATA_DIR, NaiveAlignment
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import BoyerMoore
+from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import BoyerMooreExact
 
 if __name__ == '__main__':
 
@@ -17,8 +17,14 @@ if __name__ == '__main__':
     num_alignments, num_comparisons = NaiveAlignment.naive_alignments(p1, genome, include_reverse_compliment=False)
     print('Num comparisons in exact matching %s', num_comparisons)
 
-    print('Problem 2')
-    bm = BoyerMoore(p1)
-    num_alignments, num_alignments_tried, num_comparisons = bm.boyer_moore_alignment(genome)
+    print('Problem 3')
+    bm = BoyerMooreExact(p1)
+    num_alignments, num_alignments_tried, num_comparisons = bm.query(genome)
     print('Num tried alignments %s', num_alignments_tried)
+
+    print('Problem 4')
+    bm = BoyerMooreExact(p1)
+    num_alignments, num_alignments_tried, num_comparisons = bm.query(genome)
+    print('Num tried alignments %s', num_alignments_tried)
+
 
