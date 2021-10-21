@@ -1,18 +1,14 @@
 import os
 from unittest import TestCase
 
-import pytest
-from Bio.SeqRecord import SeqRecord
-from parameterized import parameterized
-
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import NaiveAlignment, random_embedded_genome, readGenome
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import PigeonHoleApproximateMatching, BoyerMooreExact, KMERIndex
+from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import PigeonHoleApproximateMatching, BoyerMooreExact
 from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoorePreprocessing
 
 from data import DATA_DIR
 
 
-class TestAlgorithmsForDNASequencingWeek1(TestCase):
+class TestNaiveStringMatching(TestCase):
 
     def test_naive_string_matching(self):
         # test basic
@@ -76,6 +72,8 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
         num_alignments = len(t) - len(p) + 1
         self.assertEqual(num_alignments, 20)
 
+
+class TestExactBoyerMooreStringMatching(TestCase):
     @staticmethod
     def get_boyer_moore(p: str, alphabet: str = 'ACGT'):
         p_bm = BoyerMoorePreprocessing(p, alphabet=alphabet)
@@ -138,26 +136,63 @@ class TestAlgorithmsForDNASequencingWeek1(TestCase):
 
         self.assertEqual(num_character_comparisons, 18)
 
+
+class TestApproximateBoyerMoore(TestCase):
     def test_approximate_boyer_moore1(self):
         p = 'AACTTG'
         t = 'CACTTAATTTG'
-        matches = PigeonHoleApproximateMatching().query(p=p, t=t, m=2)
-        self.assertEqual(matches, [0, 5])
-
-    def test_approximate_kmer_index1(self):
-        p = 'AACTTG'
-        t = 'CACTTAATTTG'
-        matches = PigeonHoleApproximateMatching().query(t=t, m=2, p=p, method='kmer_index', k=2)
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_bm(p=p, t=t, m=2)
         self.assertEqual(matches, [0, 5])
 
     def test_exact_kmer_index2(self):
         p = 'TCTA'
         t = 'GCTACGATCTAGAATCTA'
-        matches = PigeonHoleApproximateMatching().query(t=t, m=0, p=p, method='kmer_index', k=2)
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_bm(t=t, m=0, p=p)
         self.assertEqual(matches, [7, 14])
+
 
     def test_approximate_kmer_index3(self):
         p = 'AACTTG'
         t = 'CACTTAATTTG'
-        matches = PigeonHoleApproximateMatching().query(t=t, m=2, p=p, method='kmer_index', k=2)
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_bm(t=t, m=2, p=p)
         self.assertEqual(matches, [0, 5])
+
+
+class TestApproximateSubSeqIndex(TestCase):
+    def test_approximate_subseq_index1(self):
+        p = 'AACTTG'
+        t = 'CACTTAATTTG'
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_subseq_index(t=t, m=2, p=p, k=2)
+        self.assertEqual(matches, [0, 5])
+
+    def test_exact_subseq_index2(self):
+        p = 'TCTA'
+        t = 'GCTACGATCTAGAATCTA'
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_subseq_index(t=t, m=0, p=p, k=2)
+        self.assertEqual(matches, [7, 14])
+
+    def test_approximate_subseq_index3(self):
+        p = 'AACTTG'
+        t = 'CACTTAATTTG'
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_subseq_index(t=t, m=2, p=p, k=2)
+        self.assertEqual(matches, [0, 5])
+
+    def test_approximate_subseq_index4(self):
+        t = 'to-morrow and to-morrow and to-morrow creeps in this petty pace'
+        p = 'to-morrow and to-morrow '
+        matches, num_index_hits = PigeonHoleApproximateMatching().query_subseq_index(t=t, m=0, p=p, k=8, ival=3)
+        self.assertEqual(matches, [0, 14])
+        self.assertEqual(num_index_hits, 2)
+
+
+class TestParity(TestCase):
+
+    def test_equality(self):
+        t = 'ACTTACTTGATAAAGT'
+        p = 'ACTTTA'
+        naive_matches, _ = NaiveAlignment.naive_alignments(p, t, allow_mismatches=True,
+                                                           num_mismatches=2, include_reverse_compliment=False)
+        bm_matches, _ = PigeonHoleApproximateMatching().query_bm(t=t, m=2, p=p)
+        subseq_matches, _ = PigeonHoleApproximateMatching().query_subseq_index(t=t, m=2, p=p, k=2)
+
+        assert len(naive_matches) == len(bm_matches) == len(subseq_matches)

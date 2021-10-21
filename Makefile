@@ -1,2 +1,2 @@
 test-unit:
-	pytest courses/tests
+	pytest courses/tests -v
