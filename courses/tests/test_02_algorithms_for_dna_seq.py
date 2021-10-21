@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import NaiveAlignment, random_embedded_genome, readGenome
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import PigeonHoleApproximateMatching, BoyerMooreExact
+from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_3 import EditDistance
 from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoorePreprocessing
 
 from data import DATA_DIR
@@ -185,7 +186,7 @@ class TestApproximateSubSeqIndex(TestCase):
         self.assertEqual(num_index_hits, 2)
 
 
-class TestParity(TestCase):
+class TestApproximateMatchingParity(TestCase):
 
     def test_equality(self):
         t = 'ACTTACTTGATAAAGT'
@@ -196,3 +197,18 @@ class TestParity(TestCase):
         subseq_matches, _ = PigeonHoleApproximateMatching().query_subseq_index(t=t, m=2, p=p, k=2)
 
         assert len(naive_matches) == len(bm_matches) == len(subseq_matches)
+
+
+class TestEditDistance(TestCase):
+
+    def test_recursive_1(self):
+        a = 'Hi there how are you doing today'
+        b = 'Hi there how are you doing today Jim?'
+        d = EditDistance().ed_recursive(a, b)
+        self.assertEqual(d, 5)
+
+    def test_dp_1(self):
+        a = 'Hi there how are you doing today'
+        b = 'Hi there how are you doing today Jim?'
+        d = EditDistance().ed_dp(a, b)[0]
+        self.assertEqual(d, 5)
