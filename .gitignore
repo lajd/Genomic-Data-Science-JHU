@@ -1,4 +1,8 @@
-data/
+data/*.fasta
+data/*.fastq
+data/*.fa
+data/*.fq
+
 
 .idea/
 .mypy_cache
