@@ -16,7 +16,7 @@ from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import 
 
 class EditDistance:
     def __init__(self):
-        self.cache = {}
+        self._cache = {}
         self.calls = 0
 
     def ed_recursive(self, a: str, b: str) -> int:
@@ -29,8 +29,8 @@ class EditDistance:
 
         :return:
         """
-        if (a, b) in self.cache:
-            return self.cache[(a, b)]
+        if (a, b) in self._cache:
+            return self._cache[(a, b)]
         else:
             if len(a) == 0:
                 return len(b)
@@ -47,14 +47,24 @@ class EditDistance:
                     self.ed_recursive(alpha + x, beta) + 1,
                     self.ed_recursive(alpha, beta + y) + 1,
                 )
-                self.cache[(a, b)] = distance
+                self._cache[(a, b)] = distance
                 self.calls += 1
                 return distance
 
-    def ed_dp(self, a: str, b: str):
+    def ed_dp(self, a: str, b: str, approximate_matching: bool = False):
+        """
+
+        :param a:
+        :param b:
+        :param approximate_matching: Whether to use the approximate matching alrgorithm, which
+            does not have a bias for any particular offset
+        :return:
+        """
         d = np.zeros((len(a) + 1, len(b) + 1))
         d[:, 0] = np.arange(0, len(a) + 1)
-        d[0, :] = np.arange(0, len(b) + 1)
+        if not approximate_matching:
+            # Leave first row as all zeros
+            d[0, :] = np.arange(0, len(b) + 1)
 
         for i in range(1, len(a) + 1):
             for j in range(1, len(b) + 1):
@@ -65,4 +75,19 @@ class EditDistance:
                 d_diag = d[i-1][j-1] + delta
                 d[i][j] = min(d_right, d_down, d_diag)
 
-        return d[-1, -1], d
+        if approximate_matching:
+            return min(d[-1, :])
+            pass
+        else:
+            return d[-1, -1]
+
+
+class ApproximateMatching(EditDistance):
+    """
+    Identify the match of P in T with the fewest number of edits
+
+    The "match" is a substring of T that has the same length as P
+    """
+    def __init__(self):
+        super().__init__()
+        pass

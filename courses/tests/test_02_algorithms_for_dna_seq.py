@@ -204,11 +204,40 @@ class TestEditDistance(TestCase):
     def test_recursive_1(self):
         a = 'Hi there how are you doing today'
         b = 'Hi there how are you doing today Jim?'
-        d = EditDistance().ed_recursive(a, b)
+        ed = EditDistance()
+        d = ed.ed_recursive(a, b)
         self.assertEqual(d, 5)
+        self.assertEqual(ed.calls, 1184)
 
     def test_dp_1(self):
         a = 'Hi there how are you doing today'
         b = 'Hi there how are you doing today Jim?'
-        d = EditDistance().ed_dp(a, b)[0]
+        ed = EditDistance()
+        d = ed.ed_dp(a, b)
         self.assertEqual(d, 5)
+        self.assertEqual(ed.calls, 1184)
+
+    def test_dp_approx_1(self):
+        a = 'GCGTATGC'
+        b = 'TATTGGCTATACGGTT'
+        ed = EditDistance()
+        d = ed.ed_dp(a, b, approximate_matching=True)
+        self.assertEqual(d, 2)
+        self.assertEqual(ed.calls, 128)
+
+    def test_dp_approx_2(self):
+        a = 'Hi there how are you doing today'
+        b = 'Hi there how are you doing today Jim?'
+        ed = EditDistance()
+        d = ed.ed_dp(a, b, approximate_matching=True)
+        self.assertEqual(d, 0)
+        self.assertEqual(ed.calls, 1184)
+
+    def test_dp_approx_3(self):
+        a = 'When is the store opening today?'
+        b = 'When as the shtore opening today.'
+        ed = EditDistance()
+        d = ed.ed_dp(a, b, approximate_matching=True)
+        self.assertEqual(d, 3)
+        self.assertEqual(ed.calls, 1056)
+
