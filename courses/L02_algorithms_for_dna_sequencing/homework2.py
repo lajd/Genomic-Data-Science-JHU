@@ -39,7 +39,6 @@ if __name__ == '__main__':
     print('Total index hits count %s', total_index_hits)
     print('Total matches: %s', len(occurrences))
 
-
     print('Problem 6')
     approximate_matcher = PigeonHoleApproximateMatching()
     occurrences, total_index_hits = approximate_matcher.query_subseq_index(p=p2, t=genome, m=2, k=8, ival=3)

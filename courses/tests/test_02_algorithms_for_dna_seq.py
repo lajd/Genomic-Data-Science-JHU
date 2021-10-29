@@ -1,9 +1,10 @@
 import os
+from itertools import product
 from unittest import TestCase
 
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import NaiveAlignment, random_embedded_genome, readGenome
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import PigeonHoleApproximateMatching, BoyerMooreExact
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_3 import EditDistance
+from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_3 import EditDistance, ApproximateMatching, Overlap, MatchExactPrefixSuffix, OverlapSuffixContainedInRead
 from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoorePreprocessing
 
 from data import DATA_DIR
@@ -220,24 +221,113 @@ class TestEditDistance(TestCase):
     def test_dp_approx_1(self):
         a = 'GCGTATGC'
         b = 'TATTGGCTATACGGTT'
-        ed = EditDistance()
-        d = ed.ed_dp(a, b, approximate_matching=True)
+        ed = ApproximateMatching()
+        d = ed.closest_match(a, b)
         self.assertEqual(d, 2)
         self.assertEqual(ed.calls, 128)
 
     def test_dp_approx_2(self):
         a = 'Hi there how are you doing today'
         b = 'Hi there how are you doing today Jim?'
-        ed = EditDistance()
-        d = ed.ed_dp(a, b, approximate_matching=True)
+        ed = ApproximateMatching()
+        d = ed.closest_match(a, b)
         self.assertEqual(d, 0)
         self.assertEqual(ed.calls, 1184)
 
     def test_dp_approx_3(self):
         a = 'When is the store opening today?'
         b = 'When as the shtore opening today.'
-        ed = EditDistance()
-        d = ed.ed_dp(a, b, approximate_matching=True)
+        ed = ApproximateMatching()
+        d = ed.closest_match(a, b)
         self.assertEqual(d, 3)
         self.assertEqual(ed.calls, 1056)
+
+
+class TestOverlap(TestCase):
+
+    def test_overlap_1(self):
+        a = 'Hello there tom'
+        b = 'there tom is sad'
+        o = Overlap().overlap(a, b, 5)
+        self.assertEqual(o, 9)
+
+    def test_overlap_2(self):
+        a = 'what is'
+        b = 'is the location'
+        o = Overlap().overlap(a, b, 5)
+        self.assertEqual(o, 0)
+
+
+class TestIdentifyMatchExactPrefixSuffix(TestCase):
+    def test_overlap_1(self):
+        reads = ['ABCDEFG', 'EFGHIJ', 'HIJABC']
+        o = MatchExactPrefixSuffix().get_overlapping_pairs(reads, 3, return_pairs=True)
+        self.assertEqual(o, [('ABCDEFG', 'EFGHIJ'), ('EFGHIJ', 'HIJABC'), ('HIJABC', 'ABCDEFG')])
+
+    def test_overlap_2(self):
+        reads = ['CGTACG', 'TACGTA', 'GTACGT', 'ACGTAC', 'GTACGA', 'TACGAT']
+        o = MatchExactPrefixSuffix().get_overlapping_pairs(reads, 4, return_pairs=True)
+
+        self.assertEqual(o,
+             [('CGTACG', 'TACGTA'), ('CGTACG', 'TACGAT'),
+              ('TACGTA', 'CGTACG'), ('GTACGT', 'ACGTAC'),
+              ('ACGTAC', 'GTACGT'), ('ACGTAC', 'GTACGA')]
+         )
+
+
+class TestIdentifyOverlapSuffixContainedInRead(TestCase):
+    def test_overlap_1(self):
+        reads = ['ABCDEFG', 'EFGHIJ', 'HIJABC']
+        o = OverlapSuffixContainedInRead().get_overlapping_pairs(reads, 3, return_pairs=True)
+        self.assertEqual(o, [('ABCDEFG', 'EFGHIJ'), ('EFGHIJ', 'HIJABC'), ('HIJABC', 'ABCDEFG')])
+
+    def test_overlap_2(self):
+        reads = ['CGTACG', 'TACGTA', 'GTACGT', 'ACGTAC', 'GTACGA', 'TACGAT']
+        o = OverlapSuffixContainedInRead().get_overlapping_pairs(reads, 4, return_pairs=True)
+
+        self.assertSetEqual(set(o),
+             set([('CGTACG', 'TACGTA'),
+              ('CGTACG', 'GTACGT'),
+              ('CGTACG', 'GTACGA'),
+              ('CGTACG', 'TACGAT'),
+              ('TACGTA', 'ACGTAC'),
+              ('TACGTA', 'CGTACG'),
+              ('GTACGT', 'TACGTA'),
+              ('GTACGT', 'ACGTAC'),
+              ('ACGTAC', 'GTACGA'),
+              ('ACGTAC', 'GTACGT'),
+              ('ACGTAC', 'CGTACG'),
+              ('GTACGA', 'TACGAT')])
+         )
+
+    def test_overlap_3(self):
+        reads = ['CGTACG', 'TACGTA', 'GTACGT', 'ACGTAC', 'GTACGA', 'TACGAT']
+        o = OverlapSuffixContainedInRead().get_overlapping_pairs(reads, 5, return_pairs=True)
+
+        self.assertSetEqual(set(o),
+             set([('CGTACG', 'GTACGT'),
+                 ('CGTACG', 'GTACGA'),
+                 ('TACGTA', 'ACGTAC'),
+                 ('GTACGT', 'TACGTA'),
+                 ('ACGTAC', 'CGTACG'),
+                 ('GTACGA', 'TACGAT')]
+                 )
+         )
+
+    def test_overlap_4(self):
+        reads = ['CGTACG', 'TACGTA', 'GTACGT', 'ACGTAC', 'GTACGA', 'TACGAT', 'GGACGC', 'TACCGC']
+
+        k = 5
+        expected_results = []
+        for a, b in product(reads, reads):
+            if a != b:
+                overlap = OverlapSuffixContainedInRead().overlap(a, b, k)
+                if overlap >= k:
+                    expected_results.append((a, b))
+
+        o = OverlapSuffixContainedInRead().get_overlapping_pairs(reads, 5, return_pairs=True)
+
+        self.assertSetEqual(set(o),
+             set(expected_results)
+         )
 
