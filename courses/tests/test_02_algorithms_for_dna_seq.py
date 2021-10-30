@@ -5,6 +5,8 @@ from unittest import TestCase
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import NaiveAlignment, random_embedded_genome, readGenome
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import PigeonHoleApproximateMatching, BoyerMooreExact
 from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_3 import EditDistance, ApproximateMatching, Overlap, MatchExactPrefixSuffix, OverlapSuffixContainedInRead
+from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_4 import ShortestCommonSuperstring
+
 from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoorePreprocessing
 
 from data import DATA_DIR
@@ -331,3 +333,73 @@ class TestIdentifyOverlapSuffixContainedInRead(TestCase):
              set(expected_results)
          )
 
+
+class TestBruteForceSCS(TestCase):
+    def test_scs_1(self):
+        strings = ['ABC', 'BCA', 'CAB']
+        shortest_superstrings = ShortestCommonSuperstring().brute_force_scs(strings, k=1)
+        self.assertEqual(len(shortest_superstrings), 3)
+        self.assertSetEqual(set(shortest_superstrings), {'ABCAB', 'BCABC', 'CABCA'})
+
+    def test_scs_2(self):
+        strings = ['GAT', 'TAG', 'TCG', 'TGC', 'AAT', 'ATA']
+        shortest_superstrings = ShortestCommonSuperstring().brute_force_scs(strings, k=1)
+        self.assertSetEqual(set(shortest_superstrings), {'AATAGATCGTGC',
+         'AATAGATGCTCG',
+         'AATAGTCGATGC',
+         'AATCGATAGTGC',
+         'AATGCTCGATAG',
+         'TCGAATAGATGC',
+         'TCGATAGAATGC',
+         'TCGATGCAATAG',
+         'TGCAATAGATCG',
+         'TGCAATCGATAG'}
+         )
+
+
+class TestGreedySCS(TestCase):
+    """ For these simple problems, the greedy SCS should be one of the true SCSs"""
+    def test_scs_1(self):
+        strings = ['ABC', 'BCA', 'CAB']
+        shortest_superstring = ShortestCommonSuperstring().greedy_scs(strings, k=1)
+        self.assertIn(shortest_superstring, {'ABCAB', 'BCABC', 'CABCA'})
+
+    def test_scs_2(self):
+        strings = ['GAT', 'TAG', 'TCG', 'TGC', 'AAT', 'ATA']
+        shortest_superstring = ShortestCommonSuperstring().greedy_scs(strings, k=1)
+        self.assertIn(shortest_superstring, {'AATAGATCGTGC',
+         'AATAGATGCTCG',
+         'AATAGTCGATGC',
+         'AATCGATAGTGC',
+         'AATGCTCGATAG',
+         'TCGAATAGATGC',
+         'TCGATAGAATGC',
+         'TCGATGCAATAG',
+         'TGCAATAGATCG',
+         'TGCAATCGATAG'}
+         )
+
+    def test_scs_kmer_index_1(self):
+        strings = ['ABC', 'BCA', 'CAB']
+        shortest_superstring = ShortestCommonSuperstring().greedy_scs(strings, k=1, kmer_index_k=1)
+        self.assertIn(shortest_superstring, {'ABCAB', 'BCABC', 'CABCA'})
+
+        shortest_superstring = ShortestCommonSuperstring().greedy_scs(strings, k=1, kmer_index_k=2)
+        self.assertIn(shortest_superstring, {'ABCAB', 'BCABC', 'CABCA'})
+
+    def test_scs_kmer_index_2(self):
+        strings = ['GAT', 'TAG', 'TCG', 'TGC', 'AAT', 'ATA']
+        shortest_superstring = ShortestCommonSuperstring().greedy_scs(strings, k=1, kmer_index_k=1)
+        self.assertIn(
+            shortest_superstring,
+            {'AATAGATCGTGC',
+             'AATAGATGCTCG',
+             'AATAGTCGATGC',
+             'AATCGATAGTGC',
+             'AATGCTCGATAG',
+             'TCGAATAGATGC',
+             'TCGATAGAATGC',
+             'TCGATGCAATAG',
+             'TGCAATAGATCG',
+             'TGCAATCGATAG'
+             })

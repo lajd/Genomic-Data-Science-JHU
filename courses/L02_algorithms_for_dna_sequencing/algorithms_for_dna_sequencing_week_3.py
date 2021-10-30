@@ -94,13 +94,22 @@ class ApproximateMatching(EditDistance):
 class Overlap:
     def __init__(self):
         self._overlap_cache = {}
+        self._num_cache_hits = 0
 
     def overlap(self, a, b, min_length=3) -> int:
         """ Return length of longest suffix of 'a' matching
             a prefix of 'b' that is at least 'min_length'
             characters long.  If no such overlap exists,
             return 0. """
+
+        # If the strings aren't the same length, shorten
+        # the strings such that they are. This will
+        # help with caching
+        max_compared_length = min(len(a), len(b))
+        a = a[-max_compared_length:]
+        b = b[0:max_compared_length]
         if (a, b) in self._overlap_cache:
+            self._num_cache_hits += 1
             return self._overlap_cache[(a, b)]
         start = 0  # start all the way at the left
         while True:
@@ -182,21 +191,27 @@ class OverlapSuffixContainedInRead(MatchExactPrefixSuffix):
     """
     def __init__(self):
         super().__init__()
+        self._kmer_cache = defaultdict(list)
 
-    @staticmethod
-    def _get_kmers(read: str, k: int) -> Iterable:
-        pointer = 0
-        while pointer + k < len(read) + 1:
-            yield read[pointer: pointer + k]
-            pointer += 1
+    def _get_kmers(self, read: str, k: int) -> list:
 
-    @staticmethod
-    def _get_map_kmer_to_reads(reads: List[str], k: int):
+        if (read, k) in self._kmer_cache:
+            return self._kmer_cache[(read, k)]
+        else:
+            kmers = []
+            i = 0
+            while i + k < len(read) + 1:
+                kmers.append(read[i: i + k])
+                i += 1
+            self._kmer_cache[(read, k)] = kmers
+            return kmers
+
+    def _get_map_kmer_to_reads(self, reads: List[str], k: int):
         kmer_to_read_id_map = defaultdict(set)
         read_id_mapping = {}
 
         for read_id, read in enumerate(reads):
-            for kmer in OverlapSuffixContainedInRead._get_kmers(read, k):
+            for kmer in self._get_kmers(read, k):
                 kmer_to_read_id_map[kmer].add(read_id)
             read_id_mapping[read_id] = read
 
