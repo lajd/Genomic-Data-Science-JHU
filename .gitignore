@@ -3,8 +3,7 @@ data/*.fastq
 data/*.fa
 data/*.fq
 
-
-courses/L03_command_line_tools_for_genomics/gencommand_proj1_data*
+courses/L03_command_line_tools_for_genomics/gencommand_proj*
 
 .idea/
 .mypy_cache

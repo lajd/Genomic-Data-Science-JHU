@@ -10,3 +10,11 @@ conda activate genomics_data_science
 ```shell
 pip install -e .
 ```
+
+### Additional dependencies
+
+
+```shell
+conda install -c bioconda samtools
+conda install -c bioconda bedtools
+```
