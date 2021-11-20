@@ -1,4 +1,4 @@
-# Note: this file assumes that the gencommand_proj1_data.tar.gz file has been extracted into this directory
+# Note: this file assumes that the gencommand_proj2_data.tar.gz file has been extracted into this directory
 
 # Problem 1
 ## Number of alignments
