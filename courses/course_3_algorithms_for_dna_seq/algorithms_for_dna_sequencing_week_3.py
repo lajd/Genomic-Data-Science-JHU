@@ -4,7 +4,7 @@ from typing import Optional, List, Iterable
 
 import numpy as np
 
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_2 import SubseqIndex
+from courses.course_3_algorithms_for_dna_seq.algorithms_for_dna_sequencing_week_2 import SubseqIndex
 
 
 class EditDistance:

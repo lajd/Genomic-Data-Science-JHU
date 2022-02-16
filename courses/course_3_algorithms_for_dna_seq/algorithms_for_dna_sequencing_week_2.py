@@ -5,11 +5,11 @@ from typing import Optional, List, Type
 import bisect
 from collections import defaultdict, deque
 from matplotlib import pyplot as plt
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_1 import readGenome
+from courses.course_3_algorithms_for_dna_seq.algorithms_for_dna_sequencing_week_1 import readGenome
 
 from data import DATA_DIR
 
-from courses.L02_algorithms_for_dna_sequencing.utils.boyer_moore_preproc import BoyerMoorePreprocessing
+from courses.course_3_algorithms_for_dna_seq.utils.boyer_moore_preproc import BoyerMoorePreprocessing
 
 
 class ExactMatchingStrategy(ABC):

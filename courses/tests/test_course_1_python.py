@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from Bio.SeqRecord import SeqRecord
 
-from courses.L01_python.python_genomics import ORFs, RepeatCounter
+from courses.course_2_python_for_genomics.python_genomics import ORFs, RepeatCounter
 
 
 class TestPythonGenomics(TestCase):

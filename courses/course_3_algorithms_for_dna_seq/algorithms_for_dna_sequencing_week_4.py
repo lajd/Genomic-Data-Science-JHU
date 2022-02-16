@@ -3,7 +3,7 @@ from typing import Optional, List, Iterable
 import itertools
 from typing import Union
 
-from courses.L02_algorithms_for_dna_sequencing.algorithms_for_dna_sequencing_week_3 import Overlap, OverlapSuffixContainedInRead
+from courses.course_3_algorithms_for_dna_seq.algorithms_for_dna_sequencing_week_3 import Overlap, OverlapSuffixContainedInRead
 
 
 class KMerIndex(OverlapSuffixContainedInRead):
