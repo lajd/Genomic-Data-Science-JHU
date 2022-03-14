@@ -141,7 +141,6 @@ odds_matrix[2,1] = sum(width(setdiff(cpg_autosomes, bivalent_intervals)))
 odds_matrix[1,2] = sum(width(setdiff(bivalent_intervals, cpg_autosomes)))
 odds_matrix[2,2] = num_genome_bps - sum(odds_matrix)
 
-
 odds_ratio = odds_matrix[1,1] * odds_matrix[2,2] / (odds_matrix[2,1] * odds_matrix[1,2])
 # odds_ratio=169.0962
 ```
