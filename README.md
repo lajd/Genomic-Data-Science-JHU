@@ -1,4 +1,10 @@
-# Coursera Genomic Data Science
+# Genomic Data Science Specialization
+
+This repository contains the coursework for the Genomics data science course offered by John Hopkins University (through coursera).
+
+Please see https://www.coursera.org/specializations/genomic-data-science for course details.
+
+Certificate: https://www.coursera.org/account/accomplishments/specialization/KYQV4JH86EA8
 
 
 ## Setup Python Environment
@@ -25,4 +31,4 @@ conda install -c bioconda bcftools=1.2
 ```
 
 ## Setup R Environment
-TODO
+All experiments were done using R studio using R version 4.1.3.
