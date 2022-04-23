@@ -1,14 +1,35 @@
-# Quiz 1
+---
+title: "Quiz_1"
+author: "Jonathan La"
+date: '2022-04-16'
+output: html_document
+---
 
 ## Setup
-```r
+
+```{r Options}
+# Automatic answer yes to library install
+options(needs.promptUser = FALSE)
+```
+
+```{r Setup}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+library(BiocManager)
+BiocManager::install(version = "3.14")
+
+BiocManager::install("AnnotationHub")
 library(AnnotationHub)
 ah = AnnotationHub()
 ```
 
 ## Question 1
 
-```r
+Use the AnnotationHub package to obtain data on "CpG Islands" in the human genome. How many islands exists on the autosomes?
+
+```{r question1, echo=FALSE}
 cpgislands = query(subset(ah, species == "Homo sapiens"), "CpG Islands")
 
 # Take most recent version (hg19)
@@ -23,22 +44,28 @@ standard_chromosomes = keepStandardChromosomes(hg19, pruning.mode = "coarse")
 cpg_autosomes = dropSeqlevels(standard_chromosomes, c("chrX", "chrY", "chrM"), pruning.mode = "coarse")
 
 num_islands_autosomes = length(cpg_autosomes)
+num_islands_autosomes
 # num_islands_autosomes=26641
 ```
 
-
 ## Question 2
-```r
+
+How many CpG Islands exists on chromosome 4?
+
+```{r question2}
 # Keep only standard chromosomes
 standard_chromosomes = keepStandardChromosomes(hg19, pruning.mode = "coarse")
 chr4 = keepSeqlevels(standard_chromosomes, "chr4", pruning.mode = "coarse")
 num_islands_chr4 = length(chr4)
+num_islands_chr4
 # num_islands_chr4=1031
 ```
 
 ## Question 3
-```r
 
+Obtain the data for the H3K4me3 histone modification for the H1 cell line from Epigenomics Roadmap, using AnnotationHub. Subset these regions to only keep regions mapped to the autosomes (chromosomes 1 to 22). How many bases does these regions cover?
+
+```{r question3}
 ## Further filter for narrow peaks 
 h1_H3k4me3_granges = subset(ah, species == "Homo sapiens") %>%
     query(., c("H3k4me3", "H1", "Granges", "Epigenome", "Narrow"))
@@ -52,12 +79,15 @@ H3k4me3_autosomes = keepStandardChromosomes(h1_H3k4me3_granges_narrow_peak, prun
 
 # Sum the coverage of the widths
 num_bps_covered = sum(sum(coverage(reduce(H3k4me3_autosomes))))
+num_bps_covered
 #num_bps_covered=41135164
 ```
 
 ## Question 4
 
-```r
+Obtain the data for the H3K27me3 histone modification for the H1 cell line from Epigenomics Roadmap, using the AnnotationHub package. Subset these regions to only keep regions mapped to the autosomes. In the return data, each region has an associated "signalValue". What is the mean signalValue across all regions on the standard chromosomes?
+
+```{r question4}
 # Further filter for narrow peaks 
 h1_H3K27me3_granges = subset(ah, species == "Homo sapiens") %>%
     query(., c("H3K27me3", "H1", "Granges", "Epigenome", "Narrow"))
@@ -71,64 +101,84 @@ H3K27me3_autosomes = keepStandardChromosomes(h1_H3K27me3_granges_narrow_peak, pr
 
 # Get mean
 mean_signal_value = mean(H3K27me3_autosomes$signalValue)
+mean_signal_value
 # mean_signal_value=4.770728
 ```
 
-
 ## Question 5
-```r
+
+Bivalent regions are bound by both H3K4me3 and H3K27me3. Using the regions we have obtained above, how many bases on the standard chromosomes are bivalently marked?
+
+```{r question5}
 # Find bivalent region by taking the intersection of the H3K4me3 and H3K27me3 regions
 bivalent_intervals = intersect(H3K27me3_autosomes, H3k4me3_autosomes)
 num_bivalent_bps = sum(width(bivalent_intervals))
+num_bivalent_bps
 # num_bivalent_bps=10289096
 ```
 
 ## Question 6
-```r
+
+We will examine the extent to which bivalent regions overlap CpG Islands. How big a fraction (expressed as a number between 0 and 1) of the bivalent regions, overlap one or more CpG Islands?
+
+```{r question6}
 # Find the overlapping regions between the bivalent base pairs and the cpg autosomes
 bivalent_cpg_overlaps = findOverlaps(bivalent_intervals, cpg_autosomes)
 
 unique_overlap_hits = unique(queryHits(bivalent_cpg_overlaps))
 
 fraction_bivalent_cpg_overlaps = length(unique_overlap_hits)/length(bivalent_intervals)
+fraction_bivalent_cpg_overlaps
 # fraction_bivalent_cpg_overlaps = 0.5383644
 ```
 
 ## Question 7
-```r
+
+How big a fraction (expressed as a number between 0 and 1) of the bases which are part of CpG Islands, are also bivalent marked?
+
+```{r question7}
 # Find the overlapping bases between the bivalent base pairs and the cpg autosomes
 bivalent_cpg_intersect = intersect(bivalent_intervals, cpg_autosomes)
 
 fraction_bivalent_cpg_intersect = sum(width(reduce(bivalent_cpg_intersect))) / sum(width(cpg_autosomes))
-
+fraction_bivalent_cpg_intersect
 # fraction_bivalent_cpg_intersect = 0.241688
 ```
 
 ## Question 8
-```r
 
+How many bases are bivalently marked within 10kb of CpG Islands? Tip: consider using the "resize()"" function.
+
+```{r question8}
 # Resize the cpg islands to add 10kb to each end of the region
 cpg_autosomes_10kb = resize(cpg_autosomes, fix = "center", width = width(cpg_autosomes) + 20000)
 # Intersect the new regions with the bivalent intervals
 bivalent_cpg_10kb_intersect = intersect(bivalent_intervals, cpg_autosomes_10kb)
 
 intersecting_bps = sum(width(bivalent_cpg_10kb_intersect))
+intersecting_bps
 # intersecting_bps = 9782086
 ```
 
 ## Question 9
-```r
+
+How big a fraction (expressed as a number between 0 and 1) of the human genome is contained in a CpG Island? Tip 1: the object returned by AnnotationHub contains "seqlengths". Tip 2: you may encounter an integer overflow. As described in the session on R Basic Types, you can address this by converting integers to numeric before summing them, "as.numeric()".
+
+```{r question9}
 # calculate human genome size
 num_genome_bps = sum(as.numeric(seqlengths(cpg_autosomes)))
 # Calculate the number of bps in cpg intervals
 cpg_interval_size = sum(width(cpg_autosomes))
 frac_genome_in_cpg_island = cpg_interval_size / num_genome_bps
+frac_genome_in_cpg_island
 # frac_genome_in_cpg_island =  0.007047481
 ```
 
-
 ## Question 10
-```r
+
+Compute an odds-ratio for the overlap of bivalent marks with CpG islands.
+
+```{r question10}
 # calculate human genome size
 odds_matrix = matrix(0, ncol=2, nrow=2)
 
@@ -142,5 +192,10 @@ odds_matrix[1,2] = sum(width(setdiff(bivalent_intervals, cpg_autosomes)))
 odds_matrix[2,2] = num_genome_bps - sum(odds_matrix)
 
 odds_ratio = odds_matrix[1,1] * odds_matrix[2,2] / (odds_matrix[2,1] * odds_matrix[1,2])
+odds_ratio
 # odds_ratio=169.0962
+```
+
+```{r Session Info}
+devtools::session_info()
 ```

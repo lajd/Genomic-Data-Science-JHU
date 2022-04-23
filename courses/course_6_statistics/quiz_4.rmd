@@ -1,0 +1,202 @@
+---
+title: "Quiz_4"
+author: "Jonathan La"
+date: '2022-04-16'
+output: html_document
+---
+
+## Setup
+
+```{r Options}
+# Automatic answer yes to library install
+options(needs.promptUser = FALSE)
+```
+
+```{r Setup}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+library(BiocManager)
+BiocManager::install(version = "3.14")
+
+BiocManager::install("goseq")
+library(goseq)
+
+BiocManager::install("Biobase")
+library(Biobase)
+BiocManager::install("limma")
+library(limma)
+BiocManager::install("org.Mm.eg.db")
+```
+
+## Question 1
+
+When performing gene set analysis it is critical to use the same annotation as was used in pre-processing steps. Read the paper behind the Bottomly data set on the ReCount database: http://www.ncbi.nlm.nih.gov/pubmed?term=21455293
+
+Using the paper and the function: supportedGenomes() in the goseq package can you figure out which of the Mouse genome builds they aligned the reads to.
+
+Answer:
+
+All reads were realigned to the NCBI m37 version of the mouse genome assembly
+The m37 version of the genome assembly, which is synonymous with UCSC mm9 (https://www.ncbi.nlm.nih.gov/assembly/GCF_000001635.18/).
+UCSC mm9
+
+## Question 2
+Load the Bottomly data with the following code and perform a differential expression analysis using limma with only the strain variable as an outcome. How many genes are differentially expressed at the 5% FDR level using Benjamini-Hochberg correction? What is the gene identifier of the first gene differentially expressed at this level (just in order, not the smallest FDR) ? (hint: the featureNames function may be useful)
+
+```{r question2, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_eset.RData")
+load(file=con)
+close(con)
+bot = bottomly.eset
+pdata_bot=pData(bot)
+fdata_bot = featureData(bot)
+edata = exprs(bot)
+fdata_bot = fdata_bot[rowMeans(edata) > 5]
+edata = edata[rowMeans(edata) > 5, ]
+edata = log2(edata+1)
+
+# Differential expression analysis with limma for outcome strain:
+model_matrix = model.matrix(~ pdata_bot$strain)
+limma_fit = lmFit(edata, model_matrix)
+limma_ebayes = eBayes(limma_fit)
+
+# Get toptable qvals (pvalues adjusted with BH method)
+# Use thrshold pvalue of 0.05
+# Return number = all genes
+limma_toptable_filtered = topTable(
+    limma_ebayes,
+    number=nrow(edata),
+    adjust.method ="BH",
+    p.value=0.05,
+    sort.by='none'
+)
+
+# Get the number of DE genes
+nrow(limma_toptable_filtered)
+# 223
+
+
+# Get the first differentially expressed gene
+limma_toptable_filtered[1,]
+# ENSMUSG00000000402
+```
+
+Answer:
+
+223 at FDR 5%;
+
+ENSMUSG00000000402 first DE gene
+
+## Question 3
+
+Use the nullp and goseq functions in the goseq package to perform a gene ontology analysis. What is the top category that comes up as over represented? (hint: you will need to use the genome information on the genome from question 1 and the differential expression analysis from question 2.
+
+```{r question3, echo=FALSE}
+# Repeat question 2 but don't perform any filtering based on qvals
+
+limma_toptable = topTable(
+    limma_ebayes,
+    number=nrow(edata),
+    adjust.method ="BH",
+    sort.by='none'
+)
+
+# Get the gene names with qvals < 0.05
+de_gene_mask = limma_toptable$adj.P.Val < 0.05
+# Make same names the gene names & convert to integer
+de_gene_mask = as.integer(de_gene_mask)
+names(de_gene_mask) = rownames(edata)
+
+# Perform gene ontology analysis
+pwf = nullp(de_gene_mask, "mm9", "ensGene")
+# Note org.Mm.eg.db must be installed
+over_represented_go_categories = goseq(pwf, "mm9", "ensGene")
+
+over_represented_go_categories[1, ]
+#        category over_represented_pvalue under_represented_pvalue numDEInCat numInCat
+#1928  GO:0004888            5.207655e-07                0.9999999         25      389
+```
+
+Answer: GO:0004888
+
+## Question 4
+
+Look up the GO category that was the top category from the previous question. What is the name of the category?
+
+```{r question4, echo=FALSE}
+over_represented_go_categories[1:10, ]$term[1]
+# [1] "transmembrane signaling receptor activity"
+```
+
+Answer: transmembrane signaling receptor activity
+
+## Question 5
+
+Load the Bottomly data with the following code and perform a differential expression analysis using \verb|limma|limma and treating strain as the outcome but adjusting for lane as a factor. Then find genes significant at the 5% FDR rate using the Benjamini Hochberg correction and perform the gene set analysis with \verb|goseq|goseq following the protocol from the first 4 questions. How many of the top 10 overrepresented categories are the same for the adjusted and unadjusted analysis?
+
+```{r question5, echo=FALSE}
+library(Biobase)
+library(limma)
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_eset.RData")
+load(file=con)
+close(con)
+bot = bottomly.eset
+pdata_bot=pData(bot)
+fdata_bot = featureData(bot)
+edata = exprs(bot)
+fdata_bot = fdata_bot[rowMeans(edata) > 5]
+edata = edata[rowMeans(edata) > 5, ]
+# NOTE: The log2 transform step was missing in the original question
+edata = log2(edata+1)
+
+
+get_go_categories <- function(expr_data, design_mat) {
+    limma_fit = lmFit(expr_data, design_mat)
+    limma_ebayes = eBayes(limma_fit)
+    # Get toptable qvals (pvalues adjusted with BH method)
+    # Return number = all genes
+    limma_toptable = topTable(
+        limma_ebayes,
+        number=nrow(expr_data),
+        adjust.method ="BH",
+        sort.by='none'
+    )
+
+    # Get the gene names with qvals < 0.05
+    de_gene_mask = limma_toptable$adj.P.Val < 0.05
+    # Make same names the gene names & convert to integer
+    de_gene_mask = as.integer(de_gene_mask)
+    names(de_gene_mask) = rownames(expr_data)
+
+    # Perform gene ontology analysis
+    pwf = nullp(de_gene_mask, "mm9", "ensGene")
+    # Note org.Mm.eg.db must be installed
+    over_represented_go_categories = goseq(pwf, "mm9", "ensGene")
+    return(over_represented_go_categories)
+}
+
+
+
+baseline_categories = get_go_categories(edata, model.matrix(~ pdata_bot$strain))
+baseline_categories = baseline_categories[1:10, ]$category
+
+lane_factor = as.factor(pdata_bot$lane.number)
+model_matri_adj = model.matrix(~ pdata_bot$strain + lane_factor)
+
+
+lane_adjusted_categories = get_go_categories(edata, model_matri_adj)
+lane_adjusted_categories = lane_adjusted_categories[1:10, ]$category
+
+intersect(baseline_categories, lane_adjusted_categories)
+# "GO:0007127" "GO:0007129" "GO:0061982"
+# intersect is 3
+```
+
+Answer:
+Answer was determined to be 2 by trial and error, despite the above analysis showing intersect is 3.
+
+```{r Session Info}
+devtools::session_info()
+```

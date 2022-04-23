@@ -1,21 +1,35 @@
-# Quiz 2
+---
+title: "quiz_2"
+author: "Jonathan La"
+date: '2022-04-16'
+output: html_document
+---
 
-# Setup
+## Setup
 
-```r
-library(BSgenome)
+```{r Options, echo=FALSE}
+# Automatic answer yes to library install
+options(needs.promptUser = FALSE)
+```
+
+```{r Setup, echo=FALSE}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
+library(BiocManager)
+BiocManager::install(version = "3.14")
+
+BiocManager::install("BSgenome")
+library(BSgenome)
 
 BiocManager::install("TxDb.Hsapiens.UCSC.hg19.knownGene")
-BiocManager::install("BSgenome")
 
+BiocManager::install("AnnotationHub")
 library(AnnotationHub)
 ah=AnnotationHub()
 
 available.genomes()
 
-install("BSgenome.Hsapiens.UCSC.hg19")
+BiocManager::install("BSgenome.Hsapiens.UCSC.hg19")
 library("BSgenome.Hsapiens.UCSC.hg19")
 
 seqlengths(BSgenome.Hsapiens.UCSC.hg19)
@@ -35,9 +49,13 @@ chr22_length = 51304566
 chr22_gr = GRanges(seqnames="chr22", ranges=IRanges(start=1, end=chr22_length))
 ```
 
-# Q1
+## Question 1
 
-```r
+What is the GC content of "chr22" in the "hg19" build of the human genome?
+
+**Tip:** The reference genome includes "N" bases; you will need to exclude those.
+
+```{r question1, echo=FALSE}
 ah_subset = query(ah,c("H3K27me3","narrowPeak", "E003"))
 ah_29892 = ah_subset[["AH29892"]]
 
@@ -48,8 +66,15 @@ gc_frac
 # gc_frac = 0.4798807
 ```
 
-# Q2
-```r
+## Question 2
+
+**Background:** In the previous assessment we studied H3K27me3 "narrowPeak" regions from the H1 cell line (recall that the Roadmap ID for this cell line is "E003"). We want to examine whether the GC content of the regions influence the signal; in other words wether the reported results appear biased by GC content.
+
+**Question:** What is mean GC content of H3K27me3 "narrowPeak" regions from Epigenomics Roadmap from the H1 stem cell line on chr 22.
+
+**Clarification:** Compute the GC content for each peak region as a percentage and then average those percentages to compute a number between 0 and 1.
+
+```{r question2, echo=FALSE}
 ah_subset = query(ah,c("H3K27me3","narrowPeak", "E003"))
 ah_29892 = ah_subset[["AH29892"]]
 ah_29892_chr22 = keepSeqlevels(ah_29892, c("chr22"), pruning.mode="tidy")
@@ -67,8 +92,11 @@ gc_content_for_peak
 # gc_content_for_peak = 0.528866
 ```
 
-# Q3
-```r
+## Question 3
+
+The "narrowPeak" regions includes information on a value they call "signalValue". What is the correlation between GC content and "signalValue" of these regions (on chr22)?
+
+```{r question3, echo=FALSE}
 ah_29892_chr22_signal_value = ah_29892_chr22$signalValue
 # Create df aligning GC content with signal value
 
@@ -76,10 +104,17 @@ correlation_gc_signal = cor(letterFrequency(ah_29892_chr22_view, "GC", as.prob=T
 
 correlation_gc_signal
 # correlation_gc_signal = 0.004467924
-````
+```
 
-# Q4
-```r
+## Question 4
+
+The "narrowPeak" regions are presumably reflective of a ChIP signal in these regions. To confirm this, we want to obtain the "fc.signal" data from AnnotationHub package on the same cell line and histone modification. This data represents a vector of fold-change enrichment of ChIP signal over input.
+
+Question: what is the correlation between the "signalValue" of the "narrowPeak" regions and the average "fc.signal" across the same regions?
+
+Clarification: First compute the average "fc.signal" for across each region, for example using "Views"; this yields a single number of each region. Next correlate these numbers with the "signalValue" of the "narrowPeaks".
+
+```{r question4, echo=FALSE}
 ah_chip_subset = query(ah, c("fc.signal", "H3K27me3", "E003"))
 # Use AH32033 in ah_chip_subset
 ah_32033_chip_bw = ah_chip_subset[["AH32033"]]
@@ -99,15 +134,27 @@ correlation_fc_signal_np_signal
 # correlation_fc_signal_np_signal = 0.9149614
 ```
 
-# Q5
-```r
+## Question 5
+
+Referring to the objects made and defined in the previous question. How many bases on chr22 have an fc.signal greater than or equal to 1?
+
+```{r question5, echo=FALSE}
 num_bases_ge_1 = sum(ah32033_chip_chr22 >= 1)
 num_bases_ge_1
 # num_bases_ge_1=10914671
 ```
 
-# Q6
-```r
+## Question 6
+
+The H1 stem cell line is an embryonic stem cell line, a so-called pluripotent cell. Many epigenetic marks change upon differentiation. We will examine this. We choose the cell type with Roadmap ID "E055" which is foreskin fibroblast primary cells.
+
+We will use the "fc.signal" for this cell type for the H3K27me3 mark, on chr22. We now have a signal track for E003 and a signal track for E055. We want to identify regions of the genome which gain H3K27me3 upon differentiation. These are regions which have a higher signal in E055 than in E003. To do this properly, we would need to standardize (normalize) the signal across the two samples; we will ignore this for now.
+
+Question: Identify the regions of the genome where the signal in E003 is 0.5 or lower and the signal in E055 is 2 or higher.
+
+Tip: If you end up with having to intersect two different Views, note that you will need to convert the Views to IRanges or GRanges first with \\verb\|ir \<- as(vi, "IRanges")\|ir \<- as(vi, "IRanges").
+
+```{r question6, echo=FALSE}
 ah_e055_subset = query(ah,c("H3K27me3", "fc.signal", "E055"))
 ah_32470_bw = ah_e055_subset[["AH32470"]]
 ah_32470_chip_chr22 = import(ah_32470_bw, which=chr22_gr, as="Rle")$chr22
@@ -126,9 +173,15 @@ bp_intersect
 # bp_intersect = 1869937
 ```
 
-# Q7
+## Question7
 
-```r
+CpG Islands are dense clusters of CpGs. The classic definition of a CpG Island compares the observed to the expected frequencies of CpG dinucleotides as well as the GC content.
+
+Specifically, the observed CpG frequency is just the number of "CG" dinucleotides in a region. The expected CpG frequency is defined as the frequency of C multiplied by the frequency of G divided by the length of the region.
+
+Question: What is the average observed-to-expected ratio of CpG dinucleotides for CpG Islands on chromosome 22?
+
+```{r question7, echo=FALSE}
 # Query for CpG islands
 CpG_islands_subset = query(ah, c("hg19", "CpG"))
 CpG_islands = CpG_islands_subset[["AH5086"]]
@@ -152,23 +205,32 @@ ratio_observed_expected_cpg
 # ratio_observed_expected_cpg=0.8340929
 ```
 
-# Q8
+## Question 8
 
-```
+A TATA box is a DNA element of the form "TATAAA". Around 25% of genes should have a TATA box in their promoter. We will examine this statement.
+
+Question: How many TATA boxes are there on chr 22 of build hg19 of the human genome?
+
+Clarification: You need to remember to search both forward and reverse strands.
+
+```{r question8, echo=FALSE}
 TATA_dna_str = DNAString("TATAAA")
 
-TATA_match_chr22 = matchPattern(TATA_dna_str, bsgenome_hg19_chr22) 
-TATA_rev_compl_match_chr22 = matchPattern(reverseComplement(TATA_dna_str), bsgenome_hg19_chr22) 
+TATA_match_chr22 = matchPattern(TATA_dna_str, bsgenome_hg19_chr22)
+TATA_rev_compl_match_chr22 = matchPattern(reverseComplement(TATA_dna_str), bsgenome_hg19_chr22)
 num_hits = length(TATA_match_chr22)+length(TATA_rev_compl_match_chr22)
 
 num_hits
 # num_hits=27263
-
 ```
 
-# Q9
+## Question 9
 
-```
+Question: How many promoters of transcripts on chromosome 22 containing a coding sequence, contains a TATA box on the same strand as the transcript?
+
+Clarification: Use the TxDb.Hsapiens.UCSC.hg19.knownGene package to define transcripts and coding sequence. Here, we defined a promoter to be 900bp upstream and 100bp downstream of the transcription start site.
+
+```{r question9, echo=FALSE}
 # Don't ignore the strand (same strand)
 chr_22_transcripts = keepSeqlevels(transcripts_db, c("chr22"), pruning.mode="tidy")
 chr_22_promoter_regions = promoters(chr_22_transcripts, upstream = 900, downstream = 100)
@@ -186,17 +248,22 @@ get_num_TATA_boxes <- function(idx) {
     return(vcountPattern(TATA_dna_str, promoter_region_seqdata, with.indels = FALSE))
 }
 
-TATA_box_count_in_regions = lapply(promoter_containing_gene_region_indices, test_fun)
+TATA_box_count_in_regions = lapply(promoter_containing_gene_region_indices, get_num_TATA_boxes)
 
 sum_TATA_boxes = Reduce("+", TATA_box_count_in_regions)
 # sum_TATA_boxes = 266
 # No matching answer -- choose closest answer 252
-
 ```
 
-# Q10
+## Question 10
 
-```
+It is possible for two promoters from different transcripts to overlap, in which case the regulatory features inside the overlap might affect both transcripts. This happens frequently in bacteria.
+
+Question: How many bases on chr22 are part of more than one promoter of a coding sequence?
+
+Clarification: Use the TxDb.Hsapiens.UCSC.hg19.knownGene package to define transcripts and coding sequence. Here, we define a promoter to be 900bp upstream and 100bp downstream of the transcription start site. In this case, ignore strand in the analysis.
+
+```{r question10, echo=FALSE}
 # Get the promoter regions 900bp upstream and 100bp downstream on chr22
 chr_22_transcripts = keepSeqlevels(transcripts_db, c("chr22"), pruning.mode="tidy")
 chr_22_promoters = promoters(chr_22_transcripts, upstream = 900, downstream = 100)
@@ -205,17 +272,21 @@ chr_22_promoters_tx_ids = mcols(chr_22_promoters)$tx_id
 
 # Get chr22 transcripts that have 1 or more associated CDS regions
 tx_lengths_db_ge_1_cds_  = transcript_lengths_db[transcript_lengths_db$cds_len > 0,]
-# Get transcript IDs containing CDS 
+# Get transcript IDs containing CDS
 tx_ids_ge_1_cds  = tx_lengths_db_ge_1_cds_$tx_id
 
 # Transaction ID intersection mask (promoter regions with at least 1 CDS)
 tx_id_intersect_mask = chr_22_promoters_tx_ids %in% tx_ids_ge_1_cds
 
-# Find the chr22 positions which are covered by 2 or more promoter regions containing a CDS 
+# Find the chr22 positions which are covered by 2 or more promoter regions containing a CDS
 chr22_bp_intervals_with_ge_2_promoters_of_cds = coverage(chr_22_promoters[tx_id_intersect_mask]) >= 2
 
 bp_part_of_multiple_promoters_of_cds = sum(sum(chr22_bp_intervals_with_ge_2_promoters_of_cds))
 
 bp_part_of_multiple_promoters_of_cds
 # bp_part_of_multiple_promoters_of_cds = 306920
+```
+
+```{r Session Info}
+devtools::session_info()
 ```

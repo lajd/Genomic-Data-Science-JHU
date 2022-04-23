@@ -1,4 +1,7 @@
-## Setup
+# Coursera Genomic Data Science
+
+
+## Setup Python Environment
 
 ### Create the conda environment
 ```shell
@@ -20,3 +23,6 @@ conda install -c bioconda bedtools=2.25
 conda install -c bioconda bowtie2=2.2.5
 conda install -c bioconda bcftools=1.2
 ```
+
+## Setup R Environment
+TODO

@@ -1,0 +1,380 @@
+---
+title: "Quiz_2"
+author: "Jonathan La"
+date: '2022-04-16'
+output: html_document
+---
+
+## Setup
+
+```{r Options}
+# Automatic answer yes to library install
+options(needs.promptUser = FALSE)
+```
+
+```{r Setup}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+library(BiocManager)
+BiocManager::install(version = "3.14")
+
+BiocManager::install("Biobase")
+library(Biobase)
+BiocManager::install("GenomicRanges")
+library(GenomicRanges)
+
+BiocManager::install("SummarizedExperiment")
+library(SummarizedExperiment)
+
+BiocManager::install("limma")
+library(limma)
+
+BiocManager::install("sva")
+library(sva)
+```
+
+## Question 1
+
+Load the Montgomery and Pickrell eSet:
+What percentage of variation is explained by the 1st principal component in the data set if you:
+
+Do no transformations?
+
+log2(data + 1) transform?
+
+log2(data + 1) transform and subtract row means?
+
+```{r question1, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+
+# Compute SVD with no transforms
+edata_svd = svd(edata)
+
+variation_explained  = edata_svd$d^2 / sum(edata_svd$d^2)
+plot(variation_explained, ylab="Percent of variation explained", col=2)
+
+# First eigenvalue percent of variation explained
+variation_explained[1]
+# 0.887
+
+# Compute SVD with log transform transforms
+log_edata = log2(edata + 1)
+edata_svd = svd(log_edata)
+
+variation_explained  = edata_svd$d^2 / sum(edata_svd$d^2)
+plot(variation_explained, ylab="Percent of variation explained", col=2)
+
+# First eigenvalue percent of variation explained
+variation_explained[1]
+# 0.9737781
+
+# Compute SVD with log transform transforms
+edata_svd = svd(log_edata - rowMeans(log_edata))
+
+variation_explained  = edata_svd$d^2 / sum(edata_svd$d^2)
+plot(variation_explained, ylab="Percent of variation explained", col=2)
+
+# First eigenvalue percent of variation explained
+variation_explained[1]
+# 0.3463729
+```
+
+Answer: 0.89 b. 0.97 c. 0.35
+
+## Question 2
+
+Load the Montgomery and Pickrell eSet:
+Perform the log2(data + 1) transform and subtract row means from the samples. Set the seed to \verb|333|333 and use k-means to cluster the samples into two clusters. Use \verb|svd|svd to calculate the singular vectors. What is the correlation between the first singular vector and the sample clustering indicator?
+
+```{r question2, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+
+set.seed(1235)
+
+log_edata = log2(edata + 1)
+log_edata_row_centered = log_edata - rowMeans(log_edata)
+
+# Calculate SVD
+e_svd = svd(log_edata_row_centered)
+
+# Calculate kmeans
+e_kmeans = kmeans(t(log_edata_row_centered), centers=2)
+
+# Get correlation between 1st singular vector and cluster label
+cor.test(e_svd$v[, 1], e_kmeans$cluster)
+
+#       cor
+# -0.8678247
+```
+
+Answer: 0.87
+
+## Question 3
+
+Load the Bodymap data with the following command
+Fit a linear model relating the first gene’s counts to the number of technical replicates, treating the number of replicates as a factor. Plot the data for this gene versus the covariate. Can you think of why this model might not fit well?
+
+```{r question3, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+edata = exprs(bm)
+pdata_bm=pData(bm)
+
+# Tread num replicates as independent variable
+lm_g1_tech_reps = lm(edata[1, ] ~ pdata_bm$num.tech.reps)
+
+# Plot num replicates vs 1st gene expr
+plot(pdata_bm$num.tech.reps, edata[1, ])
+
+# Overlap linear model mapping expression to technical replicates
+abline(lm_g1_tech_reps$coeff[1], lm_g1_tech_reps$coeff[2], col=2, lwd=3)
+
+# The distribution of technical replicates is highly skewed, as can be seen from the table
+#> table(pdata_bm$num.tech.reps)
+# 2  5  6
+# 16  2  1
+```
+
+Answer: There are very few samples with more than 2 replicates so the estimates for those values will not be very good.
+
+## Question 4
+
+Load the Bodymap data with the following command
+Fit a linear model relating he first gene’s counts to the age of the person and the sex of the samples. What is the value and interpretation of the coefficient for age?
+
+```{r question4, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+edata = exprs(bm)
+pdata_bm=pData(bm)
+
+# Fit model with gender & age as factors
+lm_g1_vs_age_gender = lm(edata[1,] ~ pdata_bm$age + pdata_bm$gender)
+lm_g1_vs_age_gender
+# pdata_bm$age = -23.91
+```
+
+Answer: -23.91. This coefficient means that for each additional year of age, the count goes down by an average of 23.91 for a fixed sex.
+
+## Question 5
+
+Load the Montgomery and Pickrell eSet:
+Perform the log2(data + 1) transform. Then fit a regression model to each sample using population as the outcome. Do this using the \verb|lm.fit|lm.fit function (hint: don't forget the intercept). What is the dimension of the residual matrix, the effects matrix and the coefficients matrix?
+
+```{r question5, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+
+# Log transform
+log_edata = log2(edata + 1)
+
+# Create design matrix and fit linear model for each sample
+model_matrix = model.matrix(~ pdata$population)
+lm_fit = lm.fit(model_matrix, t(edata))
+
+# Dim of residuals
+dim(lm_fit$residuals)
+
+# Dim of effects
+dim(lm_fit$effects)
+
+# Dim of coefficients
+dim(lm_fit$coefficients)
+```
+
+Answer:
+
+Residual matrix:  129 x 52580
+
+Effects matrix: 129 x 52580
+
+Coefficients matrix: 2 x 52580
+
+## Question 6
+
+Load the Montgomery and Pickrell eSet:
+
+Perform the log2(data + 1) transform. Then fit a regression model to each sample using population as the outcome. Do this using the \verb|lm.fit|lm.fit function (hint: don't forget the intercept). What is the effects matrix?
+
+```{r question6, echo=FALSE}
+?lm.fit
+```
+The help gives the answer:
+n vector of orthogonal single-df effects. The first rank of them correspond to non-aliased coefficients, and are named accordingly.
+
+Answer: The model coefficients for all samples for each gene, with the values for each gene stored in the columns of the matrix.
+
+## Question 7
+Load the Bodymap data with the following command
+Fit many regression models to the expression data where \verb|age|age is the outcome variable using the \verb|lmFit|lmFit function from the \verb|limma|limma package (hint: you may have to subset the expression data to the samples without missing values of age to get the model to fit). What is the coefficient for age for the 1,000th gene? Make a plot of the data and fitted values for this gene. Does the model fit well?
+
+```{r question7, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+edata = exprs(bm)
+pdata_bm=pData(bm)
+
+# Drop NA rows from pdata
+pdata_bm = na.omit(pdata_bm)
+# Get subset of expression data without NA pdata rows
+edata = edata[, rownames(pdata_bm)]
+
+# Fit regression models for each gene where age is the outcome
+model_matrix = model.matrix(~pdata_bm$age)
+# Use lmfit from limma
+lmfit = lmFit(edata, model_matrix)
+
+# Plot the fit line for the 1000th gene
+gene_1000_coeffs = lmfit$coefficients[1000,]
+b = gene_1000_coeffs[1]  # Intercept
+m = gene_1000_coeffs[2]  # Slope
+
+expr_data = edata[1000,]
+pred_age = expr_data*m+b
+
+plot(expr_data, pdata_bm$age)
+abline(b, m)
+
+lmfit$coefficients[1000, ]
+# (Intercept) pdata_bm$age
+#  2469.87375    -27.61178
+```
+
+Answer: -27.61. The model doesn't fit well since there are two large outlying values and the rest of the values are near zero.
+
+## Question 8
+Load the Bodymap data with the following command
+
+Fit many regression models to the expression data where \verb|age|age is the outcome variable and \verb|tissue.type|tissue.type is an adjustment variable using the \verb|lmFit|lmFit function from the \verb|limma|limma package (hint: you may have to subset the expression data to the samples without missing values of age to get the model to fit). What is wrong with this model?
+
+```{r question8, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+edata = exprs(bm)
+pdata_bm=pData(bm)
+
+# Drop NA data
+pdata_bm = na.omit(pdata_bm)
+# Only keep expression data without NA pdata
+edata = edata[, rownames(pdata_bm), drop=FALSE]
+
+# Fit regression models for each gene where age is the outcome with tissue_type an adjustment variable
+model_matrix = model.matrix(~pdata_bm$age + pdata_bm$tissue.type)
+lmfit = lmFit(edata, model_matrix)
+
+length(pdata_bm$tissue.type)
+# 16
+length(pdata_bm$age)
+# 16
+
+dim(edata)[2]
+# 16
+```
+
+Answer: Since tissue.type is a factor variable with many levels, this model has more coefficients to estimate per gene (18) than data points per gene (16).
+
+## Question 9
+Why is it difficult to distinguish the study effect from the population effect in the Montgomery Pickrell dataset from ReCount?
+
+Fit many regression models to the expression data where \verb|age|age is the outcome variable and \verb|tissue.type|tissue.type is an adjustment variable using the \verb|lmFit|lmFit function from the \verb|limma|limma package (hint: you may have to subset the expression data to the samples without missing values of age to get the model to fit). What is wrong with this model?
+
+```{r question9, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+
+table(pdata$population, pdata$study)
+#      Montgomery Pickrell
+#  CEU         60        0
+#  YRI          0       69
+```
+
+Answer: The effects are difficult to distinguish because each study only measured one population.
+
+## Question 10
+Why is it difficult to distinguish the study effect from the population effect in the Montgomery Pickrell dataset from ReCount?
+
+Set the seed using the command set.seed(33353) then estimate a single surrogate variable using the sva function after log2(data + 1) transforming the expression data, removing rows with rowMeans less than 1, and treating age as the outcome (hint: you may have to subset the expression data to the samples without missing values of age to get the model to fit). What is the correlation between the estimated surrogate for batch and age? Is the surrogate more highly correlated with race or gender?
+
+```{r question10, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+edata = exprs(bm)
+pdata_bm=pData(bm)
+
+set.seed(33353)
+# Drop NAs
+pdata_bm = na.omit(pdata_bm)
+# Only keep expression data without NA pdata
+edata = edata[, rownames(pdata_bm), drop=FALSE]
+# Log transform and keep rows with means > 1
+edata = log2(edata + 1)
+edata = edata[rowMeans(edata) >= 1, ]
+
+# Fit SVA model
+# Age outcome
+mod = model.matrix(~age, data=pdata_bm)
+# Null model
+mod0 = model.matrix(~1, data=pdata_bm)
+
+# Fit SVA with 2 surrogate variables for batch
+sva = sva(edata, mod, mod0, n.sv=2)
+# Get the correlation between surogate batch variables and age
+
+cor(sva$sv, pdata_bm$age)
+# [1,] -0.1965417
+# [2,] -0.1560322
+
+# Correlation between batch and race/gender
+cor(sva$sv, as.numeric(pdata_bm$gender))
+# [1,] -0.35780610
+# [2,]  0.04154497
+
+# Correlation between batch and race/gender
+cor(sva$sv, as.numeric(pdata_bm$race))
+# [1,] -0.2265909
+# [2,] -0.1051495
+```
+
+Answer:
+Correlation with age: 0.20
+
+More highly correlated with gender.
+
+
+```{r Session Info}
+devtools::session_info()
+```

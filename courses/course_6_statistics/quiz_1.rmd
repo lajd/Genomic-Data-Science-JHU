@@ -1,0 +1,265 @@
+---
+title: "Quiz_1"
+author: "Jonathan La"
+date: '2022-04-16'
+output: html_document
+---
+
+## Setup
+
+```{r Options}
+# Automatic answer yes to library install
+options(needs.promptUser = FALSE)
+```
+
+```{r Setup}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+library(BiocManager)
+BiocManager::install(version = "3.14")
+
+BiocManager::install("Biobase")
+library(Biobase)
+BiocManager::install("GenomicRanges")
+library(GenomicRanges)
+
+BiocManager::install("SummarizedExperiment")
+library(SummarizedExperiment)
+```
+
+## Question 1
+
+Reproducibility is defined informally as the ability to recompute data analytic results conditional on an observed data set and knowledge of the statistical pipeline used to calculate them Peng 2011, Science. Replicability of a study is the chance that a new experiment targeting the same scientific question will produce a consistent result Asendorpf 2013 European Journal of Personality.
+
+Susan asks Joe for his data shared according to the data sharing plan discussed in the lectures. Which of the following are reasons the study may be reproducible, but not replicable?
+
+Answer:
+The identified effect can be reproduced from Joe's code and data, but may be due only to random variation and not appear in future studies.
+
+
+## Question 2
+
+Answer: The plot is random the first time you knit the document. It is identical to the first time the second time you knit the document. After removing the folders \verb|test_cache|test_cache and \verb|test_files|test_files they generate new random versions.
+
+
+## Question 3
+
+```{r question3, echo=FALSE}
+data(sample.ExpressionSet, package = "Biobase")
+se = makeSummarizedExperimentFromExpressionSet(sample.ExpressionSet)
+
+assay(se)
+colData(se)
+rowRanges(se)
+rowRanges(se)  # Range of possible values of expression data.
+# Gives information on genomic location and structure of measured features.
+```
+
+Answer: Get the genomic table with \verb|assay(se)|assay(se), get the phenotype table with \verb|colData(se)|colData(se), get the feature data with \verb|rowRanges(se)|rowRanges(se). \verb|rowRanges(se)|rowRanges(se) gives information on the genomic location and structure of the measured features.
+
+## Question 4
+
+Suppose that you have measured ChIP-Seq data from 10 healthy individuals and 10 metastatic cancer patients. For each individual you split the sample into two identical sub-samples and perform the ChIP-Seq experiment on each sub-sample. How can you measure (a) biological variability, (b) technical variability and (c) phenotype variability.
+
+Answer:
+
+(a) By looking at variation across samples from 10 different healthy individuals
+(b) By looking at variability between the measurements on the two sub-samples from the same sample and
+(c) by comparing the average measurements on the healthy individuals to the measurements on the individuals with cancer.
+
+## Question 5
+
+```{r question5, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bottomly_eset.RData")
+load(file=con)
+close(con)
+bot = bottomly.eset
+pdata_bot=pData(bot)
+
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+pdata_bm=pData(bm)
+
+# Examine covariates
+## BodyMap
+table(pdata_bm$tissue.type,pdata_bm$gender)
+table(pdata_bm$tissue.type,pdata_bm$age)
+table(pdata_bm$tissue.type,pdata_bm$race)
+
+## Bottomly
+table(pdata_bot$strain,pdata_bot$experiment.number)
+table(pdata_bot$strain,pdata_bot$lane.number)
+```
+
+By examining covariates, we can see that covariates in the bottomly dataset are more balanced
+WRT the strain than the covariates of the bodymap dataset WRT strain
+
+Answer: The covariates in the Bottomly data set (experiment number, lane number)  are balanced with respect to strain. The covariates in the Bodymap data set (gender, age, number of technical replicates) are not balanced with respect to tissue
+
+
+## Question 6
+What are some reasons why this plot is not useful for comparing the number of technical replicates by tissue (you may need to install the plotrix package).
+
+```{r question6, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+pdata_bm=pData(bm)
+
+BiocManager::install("plotrix")
+library(plotrix)
+pie3D(pdata_bm$num.tech.reps,labels=pdata_bm$tissue.type)
+```
+
+Answer: The "mixture" category is split across multiple wedges.
+
+## Question 7
+What are some reasons why this plot is not useful for comparing the number of technical replicates by tissue (you may need to install the plotrix package).
+
+```{r question7, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+edata = exprs(bm)
+
+row_sums = rowSums(edata)
+edata = edata[order(-row_sums),]
+index = 1:500
+heatmap(edata[index,],Rowv=NA,Colv=NA)
+```
+Yes, the most expressed samples are relatively close in sample space.
+e.g. the top 6 expressed samples have counts within 100 (~ 0.5%)
+
+```r
+order(-row_sums)
+   [1] 18518 18612 18610 18642 18582 18548
+```
+
+## Question 8
+Load the Bodymap data using the following code:
+
+Make an MA-plot of the first sample versus the second sample using the log2 transform (hint: you may have to add 1 first) and the \verb|rlog|rlog transform from the DESeq2 package. How are the two MA-plots different? Which kind of genes appear most different in each plot?
+
+```{r question8, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+pdata = pData(bm)
+edata = exprs(bm)
+
+mm1 = log2(edata[, 1] + 1) - log2(edata[, 2] + 1)
+aa1 = log2(edata[, 1] + 1) + log2(edata[, 2] + 1)
+plot(aa1, mm1, col=2)
+
+
+BiocManager::install("DESeq2")
+library(DESeq2)
+
+rlogEData=rlog(edata)
+mm2 = rlogEData[, 1] - rlogEData[, 2]
+aa2 = rlogEData[, 1] + rlogEData[, 2]
+plot(aa2, mm2, col=2)
+```
+Answer: The plots look pretty similar, but there are two strong diagonal stripes (corresponding to the zero count genes) in the \verb|rlog|rlog plot. In both cases, the genes in the middle of the expression distribution show the biggest differences, but the low abundance genes seem to show smaller differences with the \verb|log2|log2 transform.
+
+## Question 9
+Load the Montgomery and Pickrell eSet:
+
+Cluster the data in three ways:
+
+With no changes to the data
+
+After filtering all genes with \verb|rowMeans|rowMeans less than 100
+
+After taking the log2 transform of the data without filtering
+
+Color the samples by which study they came from (Hint: consider using the function myplclust.R in the package rafalib available from CRAN and looking at the argument lab.col.)
+
+How do the methods compare in terms of how well they cluster the data by study? Why do you think that is?
+
+```{r question9, echo=FALSE}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+
+BiocManager::install("rafalib")
+library(rafalib)
+
+# Hierarchical Cluster1
+d1 = dist(t(edata))
+h1 = hclust(d1)
+plot(h1)
+myplclust(h1, lab.col = as.numeric(pdata$study))
+
+# Cluster2
+d2 = dist(t(edata[rowMeans(edata) >= 100,]))
+h2 = hclust(d2)
+plot(h2)
+myplclust(h2, lab.col = as.numeric(pdata$study))
+
+# Cluster3
+d3 = dist(t(log2(edata + 1)))
+h3 = hclust(d3)
+plot(h3)
+myplclust(h3, lab.col = as.numeric(pdata$study))
+```
+Answer: Clustering with or without filtering is about the same. Clustering after the log2 transform shows better clustering with respect to the study variable. The likely reason is that the highly skewed distribution doesn't match the Euclidean distance metric being used in the clustering example.
+
+## Question 10
+Load the Montgomery and Pickrell eSet:
+Cluster the samples using k-means clustering after applying the log2 transform (be sure to add 1). Set a seed for reproducible results (use set.seed(1235)). If you choose two clusters, do you get the same two clusters as you get if you use the cutree function to cluster the samples into two groups? Which cluster matches most closely to the study labels?
+
+```{r question10, echo=FALSE}
+con = url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+
+study_id = as.integer(pdata$study == "Montgomery")
+
+set.seed(1235)
+
+log2_edata = log2(edata + 1)
+
+k1 = kmeans(t(log2_edata), centers=2)
+matplot(t(k1$centers), col=1:2, type="l",lwd=3)
+table(k1$cluster)
+# Assume cluster 1 is study_id_1 and get overlap
+# Map cluster to 0/1 same as study_id
+kmeans_clusters = as.integer(k1$cluster == 1)
+frac_correct = sum(kmeans_clusters == study_id) / length(study_id)
+frac_correct
+# frac_correct = 84%
+
+# cuttree
+d1 = dist(t(log2_edata))
+h1 = hclust(d1)
+c1 = cutree(h1, k = 2)
+table(c1)
+
+# Assume cluster 1 is study 1
+hclust_clusters = as.integer(c1 == 1)
+frac_correct = sum(hclust_clusters == study_id) / length(study_id)
+frac_correct
+# frac_correct = 45%
+```
+Answer:
+They produce different answers, with hierarchical clustering giving a much more unbalanced clustering. The k-means clustering matches study better.
+
+```{r Session Info}
+devtools::session_info()
+```
